@@ -36,15 +36,14 @@ async def test_create_room_no_name():
 async def test_websocket_connect():
     client = TestClient(app)
     with client.websocket_connect("/ws") as ws:
-        assert ws.accept()
+        ws.send_json({"action": "ping"})
+        data = ws.receive_text()
+        assert data == "pong"
 
 # Test room joining via websocket
 @pytest.mark.asyncio
-async def test_join_room():
-
-    # Create room
-    room = await test_room()
-    room_code = room["code"]
+async def test_join_room(test_room):
+    room_code = (await test_room)["code"]
 
     # Try and establish a websocket connection
     client = TestClient(app)

@@ -21,6 +21,23 @@ async def test_create_room():
     assert "code" in response.json()
     assert response.json()["name"] == "test room"
 
+# Test room creation with no name
+@pytest.mark.asyncio
+async def test_create_room_no_name():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.post("/api/rooms/", json={})
+    assert response.status_code == 422
+    
+    # Check if there is an error about missing name
+    assert any(error["loc"] == ["body", "name"] for error in response.json()["detail"])
+
+# Test websocket connection
+@pytest.mark.asyncio
+async def test_websocket_connect():
+    client = TestClient(app)
+    with client.websocket_connect("/ws") as ws:
+        assert ws.accept()
+
 # Test room joining via websocket
 @pytest.mark.asyncio
 async def test_join_room():

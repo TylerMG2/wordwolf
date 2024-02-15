@@ -26,7 +26,6 @@ class TestPlayerJoin:
     async def test_join_room(self, user_id, username, is_host, websocket_connection):
 
         # Try and establish a websocket connection
-        client = TestClient(app)
         with websocket_connection(self.room_code, user_id, username) as ws:
             data = ws.receive_json()
 

@@ -37,13 +37,18 @@ class TestPlayerLeave:
 
         # Try and establish a websocket connection
         with websocket_connection(self.room_code, self.USER_ID, self.USERNAME) as ws:
+            ws.receive_json()
 
             # Check if the user joined the room
             room_details = await fetch_room_details(self.room_code)
             assert self.USER_ID in room_details["players"]
 
             # Leave the room
-            ws.send_json({"action": "leave"})
+            ws.send_json({"action": "leave", "room_code": self.room_code})
+
+            data = ws.receive_json()
+            assert "message" in data
+            assert data["message"] == "Left room"
 
         # Check if the user left the room
         room_details = await fetch_room_details(self.room_code)

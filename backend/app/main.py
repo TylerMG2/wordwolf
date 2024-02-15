@@ -61,16 +61,16 @@ async def websocket_endpoint(websocket: WebSocket, room: str = Query(None), user
 
             # Parse the data
             action = data.get("action")
-            print(action)
+            room = data.get("room_code")
 
             # Handle the action
             if action == "leave":
-                manager.leave(websocket)
+                await manager.leave_room(websocket, room)
             elif action == "ping":
                 await websocket.send_text("pong")
             else:
                 await websocket.send_text("Invalid action")
     except Exception as e:
-        print(f"Websocket error: {e}")
+        pass
     finally:
         manager.disconnect(websocket)

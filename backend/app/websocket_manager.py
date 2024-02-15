@@ -86,6 +86,7 @@ class WebSocketManager:
         room_code = str(uuid.uuid4())[:6]
         while room_code in self.rooms:
             room_code = str(uuid.uuid4())[:6]
+        room_code = room_code.upper()
 
         # Create the room
         self.rooms[room_code] = Room(host)
@@ -96,5 +97,14 @@ class WebSocketManager:
         if room_code in self.rooms:
             self.rooms[room_code].append(websocket)
             await websocket.send_json({"message": "Joined room"})
+        else:
+            await websocket.send_json({"message": "Room does not exist"})
+    
+    # Leave a room
+    async def leave_room(self, websocket: WebSocket, room_code: str):
+        user_id = self.connections[websocket]
+        if room_code in self.rooms:
+            del self.rooms[room_code].players[user_id]
+            await websocket.send_json({"message": "Left room"})
         else:
             await websocket.send_json({"message": "Room does not exist"})

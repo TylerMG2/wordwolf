@@ -46,8 +46,10 @@ class WebSocketManager:
 
         # Check if the room exists
         if room_id not in self.rooms:
-            await websocket.send_json({"message": "Room does not exist"})
-            return False
+            raise Exception("Room does not exist")
+        
+        # Accept the connection
+        await websocket.accept()
 
         # Else join the room
         room = self.rooms[room_id]
@@ -64,7 +66,6 @@ class WebSocketManager:
         response = room.to_dict()
         response["is_host"] = is_host
         await websocket.send_json(response)
-        return True
 
     # On disconnect
     def disconnect(self, websocket: WebSocket):

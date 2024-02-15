@@ -40,15 +40,12 @@ async def websocket_endpoint(websocket: WebSocket, room: str = Query(None), user
             await websocket.close(code=4001, reason="Room code not provided")
             return
 
-        await websocket.accept()
-
-        # Connect to the websocket
-        result = await manager.connect(websocket, room, user_id, username)
-
-        # If the connection was unsuccessful
-        if not result:
-            await websocket.close()
-            return
+        # Attempt to connect
+        try: 
+            await manager.connect(websocket, room, user_id, username)
+        except Exception as e:
+            await websocket.close(code=4001, reason=str(e))
+            return        
     
         while True:
             # Wait for data

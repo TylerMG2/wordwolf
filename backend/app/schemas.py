@@ -1,4 +1,4 @@
 from pydantic import BaseModel
 
 class RoomCreate(BaseModel):
-    name: str
+    user_id: str

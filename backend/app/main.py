@@ -1,7 +1,6 @@
 from fastapi import FastAPI, WebSocket
 from .schemas import RoomCreate
 from .websocket_manager import WebSocketManager
-import uuid
 
 # Create app
 app = FastAPI()
@@ -16,18 +15,13 @@ async def get_root():
 
 # Create room endpoint
 @app.post("/api/rooms/")
-async def create_room(room_create: RoomCreate):
+async def create_room(room_create: RoomCreate): 
 
-    # Generate a unique room code that does not already exist
-    room_code = str(uuid.uuid4())[:6]
-    while room_code in manager.rooms:
-        room_code = str(uuid.uuid4())[:6]
-    
     # Create the room
-    await manager.create_room(room_code, room_create.name)
+    room_code = await manager.create_room(room_create.user_id)
 
     # Return the room code
-    return {"code": room_code, "name": room_create.name}
+    return {"code": room_code}
 
 # Websocket route
 @app.websocket("/ws")

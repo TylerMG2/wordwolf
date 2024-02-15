@@ -1,11 +1,18 @@
 from fastapi import WebSocket
 from typing import Dict, List, Optional
+import uuid
+
+class Room:
+    def __init__(self, host: str):
+        self.host = host
+        self.players = []
+        self.game_state = "waiting_for_players"
 
 # Manager for websocket connections
 class WebSocketManager:
     def __init__(self):
         self.connections: List[WebSocket] = []
-        self.rooms: Dict[str, List[WebSocket]] = {}
+        self.rooms: Dict[str, Room] = {}
 
     # On connect
     async def connect(self, websocket: WebSocket):
@@ -19,12 +26,16 @@ class WebSocketManager:
                 room.remove(websocket)
 
     # Create a room
-    async def create_room(self, room_code: str, name: str):
-        if room_code not in self.rooms:
-            self.rooms[room_code] = []
-        else:
-            raise ValueError("Room already exists")
-    
+    async def create_room(self, host: str):
+
+        # Generate a room code
+        room_code = str(uuid.uuid4())[:6]
+        while room_code in self.rooms:
+            room_code = str(uuid.uuid4())[:6]
+
+        # Create the room
+        self.rooms[room_code] = Room(host)
+
     # Join a room
     async def join_room(self, room_code: str, username: str, websocket: WebSocket):
         if room_code in self.rooms:

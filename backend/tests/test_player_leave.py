@@ -1,7 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from .test_fixtures import test_room
 
 # Constants
 USERNAME = "test user"

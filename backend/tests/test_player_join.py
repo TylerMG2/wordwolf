@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 from app.main import app
-from .test_fixtures import test_room
 
 # Constants
 USERNAME = "test user"
@@ -13,11 +13,14 @@ async def check_user_joined_room(data):
     assert "players" in data
     assert "game_state" in data
 
+    # Check if the user is in the players list
+    assert USER_ID in data["players"]
+
 # Test room joining as a host
 # Expected to succeed
 @pytest.mark.asyncio
-async def test_join_room_as_host(test_room):
-    room_code = (await test_room(USER_ID))["code"]
+async def test_join_room_as_host(create_room):
+    room_code = await create_room(user_id=USER_ID)
 
     # Try and establish a websocket connection
     client = TestClient(app)
@@ -33,8 +36,8 @@ async def test_join_room_as_host(test_room):
 # Test room joining as a player
 # Expected to succeed
 @pytest.mark.asyncio
-async def test_join_room_as_player(test_room):
-    room_code = (await test_room)["code"]
+async def test_join_room_as_player(create_room):
+    room_code = await create_room()
 
     # Try and establish a websocket connection
     client = TestClient(app)
@@ -58,13 +61,13 @@ async def test_join_non_existent_room():
         data = ws.receive_json()
 
         # Assert that the response is correct
-        assert data == {"message": "Room not found"}
+        assert data == {"message": "Room does not exist"}
 
 # Test attempting to join a room with no username
 # Expected to succeed
 @pytest.mark.asyncio
-async def test_join_room_no_username(test_room):
-    room_code = (await test_room)["code"]
+async def test_join_room_no_username(create_room):
+    room_code = await create_room()
 
     # Try and establish a websocket connection
     client = TestClient(app)
@@ -72,33 +75,40 @@ async def test_join_room_no_username(test_room):
         data = ws.receive_json()
 
         # Assert that the response contains the room state
-        assert "is_host" in data
-        assert "players" in data
-        assert "game_state" in data
+        await check_user_joined_room(data)
 
 # Test attempting to join a room with no user_id
 # Expected to fail
 @pytest.mark.asyncio
-async def test_join_room_no_user_id(test_room):
-    room_code = (await test_room)["code"]
+async def test_join_room_no_user_id(create_room):
+    room_code = await create_room()
 
     # Try and establish a websocket connection
     client = TestClient(app)
-    with client.websocket_connect(f"/ws?room={room_code}&username={USERNAME}") as ws:
-        data = ws.receive_json()
+    try:
+        with client.websocket_connect(f"/ws?room={room_code}&username={USERNAME}") as ws:
+            
+            # If the connection was successful, the test failed
+            assert ws is None
+    except WebSocketDisconnect as e:
+        assert e.code == 4001
+        assert e.reason == "User ID not provided"
+    
 
-        # Assert that the response is correct
-        assert data == {"message": "User ID not provided"}
 
 # Test attempting to join a room with no room code
 # Expected to fail
 @pytest.mark.asyncio
-async def test_join_room_no_room_code():
-        
+async def test_join_room_no_room_code(create_room):
+    room_code = await create_room()
+
     # Try and establish a websocket connection
     client = TestClient(app)
-    with client.websocket_connect(f"/ws?user_id={USER_ID}&username={USERNAME}") as ws:
-        data = ws.receive_json()
-
-        # Assert that the response is correct
-        assert data == {"message": "Room code not provided"}
+    try:
+        with client.websocket_connect(f"/ws?user_id={USER_ID}&username={USERNAME}") as ws:
+            
+            # If the connection was successful, the test failed
+            assert ws is None
+    except WebSocketDisconnect as e:
+        assert e.code == 4001
+        assert e.reason == "Room code not provided"

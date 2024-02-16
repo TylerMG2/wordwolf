@@ -1,9 +1,9 @@
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
-from app.main import app
-
+from app.schemas.player_schema import OtherPlayerSchema, PlayerSchema
+from app.schemas.room_schema import RoomSchema
+from app.schemas.action_schemas import PlayerJoinSchema
 
 @pytest.mark.asyncio
 class TestPlayerJoin:
@@ -29,16 +29,46 @@ class TestPlayerJoin:
         with websocket_connection(self.room_code, user_id, username) as ws:
             data = ws.receive_json()
 
-            # Check if the user joined the room
-            assert "is_host" in data
-            assert "players" in data
-            assert "game_state" in data
+            # Convert response to room schema
+            data = RoomSchema.model_validate_json(data)
 
-            # Check if the user is in the players list
-            assert user_id in data["players"]
+        # Assertions
+        assert isinstance(data, RoomSchema)
+        assert all(isinstance(player, OtherPlayerSchema) for player in data.players)
+        assert isinstance(data.you, PlayerSchema)
+        assert data.you.is_host == is_host
+        assert data.you.username == username or "No name"
+        assert data.you.active == True
+        assert data.you.user_id == user_id
+    
+    # Test other player joining the room
+    async def test_other_player_join(self, websocket_connection, fetch_room_details):
+            
+        # Try and establish a websocket connection
+        with websocket_connection(self.room_code, self.USER_ID, self.USERNAME) as ws:
+            
+            print(ws.receive_json())
 
-            # Assert that we are the host
-            assert data["is_host"] == is_host
+            # Try and establish a websocket connection
+            with websocket_connection(self.room_code, "other_user_id", "other_user") as ws2:
+                data = ws2.receive_json()
+                print(data)
+
+                # Convert response to room schema
+                second_player_data = RoomSchema.model_validate_json(data)
+                first_player_data = ws.receive_json()
+                print(first_player_data)
+        
+        # Assertions second player
+        assert isinstance(second_player_data, RoomSchema)
+        assert all(isinstance(player, OtherPlayerSchema) for player in second_player_data.players)
+        assert isinstance(second_player_data.you, PlayerSchema)
+        assert second_player_data.you.user_id == "other_user_id"
+        assert second_player_data.you.username == "other_user"
+
+        # Assertions first player
+        assert isinstance(first_player_data, PlayerJoinSchema)
+        assert first_player_data.player.username == "other_user"
     
     # Test joining a non-existent room
     # Expected to fail

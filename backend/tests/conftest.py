@@ -20,7 +20,7 @@ async def test_client(scope="session"):
         yield client
 
 @pytest.fixture
-def websocket_connection():
+def websocket_connection(): 
     def _connection(room_code, user_id, username=None):
         client = TestClient(app)
         
@@ -40,8 +40,8 @@ def websocket_connection():
 
 @pytest_asyncio.fixture
 async def fetch_room_details():
-    async def _fetch(room_code: str):
+    async def _fetch(room_code: str, user_id: str):
         async with AsyncClient(app=app, base_url="http://test") as ac:
-            response = await ac.get(f"/api/rooms/{room_code}")
+            response = await ac.get(f"/api/rooms/{room_code}?user_id={user_id}")
             return response.json()
     return _fetch

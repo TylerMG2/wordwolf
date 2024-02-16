@@ -20,7 +20,7 @@ class TestPlayerLeave:
         with websocket_connection(self.room_code, self.USER_ID, self.USERNAME) as ws:
 
             # Check if the user joined the room
-            room_details = await fetch_room_details(self.room_code)
+            room_details = await fetch_room_details(self.room_code, self.USER_ID)
             assert self.USER_ID in room_details["players"]
             assert room_details["players"][self.USER_ID]["active"] == True
 
@@ -28,7 +28,7 @@ class TestPlayerLeave:
             ws.close()
 
         # Check if the user left the room
-        room_details = await fetch_room_details(self.room_code)
+        room_details = await fetch_room_details(self.room_code, self.USER_ID)
         assert self.USER_ID in room_details["players"]
         assert room_details["players"][self.USER_ID]["active"] == False
     
@@ -40,7 +40,7 @@ class TestPlayerLeave:
             ws.receive_json()
 
             # Check if the user joined the room
-            room_details = await fetch_room_details(self.room_code)
+            room_details = await fetch_room_details(self.room_code, self.USER_ID)
             assert self.USER_ID in room_details["players"]
 
             # Leave the room
@@ -51,5 +51,5 @@ class TestPlayerLeave:
             assert data["message"] == "Left room"
 
         # Check if the user left the room
-        room_details = await fetch_room_details(self.room_code)
+        room_details = await fetch_room_details(self.room_code, self.USER_ID)
         assert self.USER_ID not in room_details["players"]

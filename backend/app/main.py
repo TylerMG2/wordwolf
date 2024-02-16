@@ -1,6 +1,6 @@
 from fastapi import FastAPI, WebSocket, Query, HTTPException, Response
-from .schemas import RoomCreate
-from .websocket_manager import WebSocketManager
+from app.schemas.room_schema import RoomCreate
+from app.websocket_manager import WebSocketManager
 import os
 
 print(os.getenv('ENV'))
@@ -23,13 +23,13 @@ async def create_room(room_create: RoomCreate):
 
 # Room info endpoint
 @app.get("/api/rooms/{room_code}")
-async def room_info(room_code: str):
+async def room_info(room_code: str, user_id: str = Query(None)):
 
     # Check if we are in testing
     if os.getenv('ENV') != "TEST":
         return HTTPException(status_code=404, detail="Not found")
 
-    return manager.rooms[room_code].to_dict()
+    return manager.rooms[room_code].to_schema(user_id)
 
 # Websocket route
 @app.websocket("/ws")

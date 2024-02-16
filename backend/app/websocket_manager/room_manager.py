@@ -14,7 +14,7 @@ class Player:
     credentials: str
     word: str = ""
     is_host: bool = False
-    is_connected: bool = True
+    is_connected: bool = False
     is_spy: bool = False
 
     def __init__(self, player_id: int, username: str, is_host: bool):

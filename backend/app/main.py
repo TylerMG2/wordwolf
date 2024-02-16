@@ -71,4 +71,4 @@ async def websocket_endpoint(websocket: WebSocket, room: str = Query(None), user
     except Exception as e:
         pass
     finally:
-        manager.disconnect(websocket)
+        await manager.disconnect(websocket)

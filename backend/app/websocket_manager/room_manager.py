@@ -8,7 +8,7 @@ import uuid
 # Player class
 class Player:
     def __init__(self, websocket: WebSocket ,username: str, is_host: bool):
-        self.id = str(uuid.uuid4())
+        self.player_id = str(uuid.uuid4())
         self.websocket = websocket
         self.username = username
         self.active = True
@@ -19,7 +19,7 @@ class Player:
     # Convert to player schema
     def to_player_schema(self, user_id: str):
         return PlayerSchema(
-            id=self.id,
+            player_id=self.player_id,
             username=self.username,
             active=self.active,
             word=self.word,
@@ -31,7 +31,7 @@ class Player:
     # Convert to other player schema
     def to_other_player_schema(self):
         return OtherPlayerSchema(
-            id=self.id,
+            player_id=self.player_id,
             username=self.username,
             active=self.active,
             is_host=self.is_host
@@ -47,7 +47,7 @@ class Room:
     # Convert to room schema
     def to_schema(self, user_id: str):
         return RoomSchema(
-            players={player.id: player.to_other_player_schema() for player in self.players.values()},
+            players={player.player_id: player.to_other_player_schema() for player in self.players.values()},
             game_state=self.game_state,
             you=self.players[user_id].to_player_schema(user_id)
         )

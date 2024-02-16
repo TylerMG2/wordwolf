@@ -68,6 +68,7 @@ class TestPlayerJoin:
 
         # Assertions first player
         assert isinstance(player_join, ActionSchema)
+        assert player_join.action == "player_join"
         assert player_join.data.username == "other_user"
     
     # Test joining a non-existent room

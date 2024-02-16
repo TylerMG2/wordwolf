@@ -28,10 +28,10 @@ class WebSocketManager:
 
         # Send the room data to the joining player
         game_state = room.to_schema(user_id)
-        await room.send_to(game_state, user_id)
+        await room.send_to(ActionSchema(action="game_state", data=game_state), user_id)
 
         # Broadcast the new player to the room
-        player_join = ActionSchema(action="leave", data=room.players[user_id].to_other_player_schema().model_dump())
+        player_join = ActionSchema(action="player_join", data=room.players[user_id].to_other_player_schema())
         await room.broadcast_except(player_join, user_id)
 
     # On disconnect
@@ -62,8 +62,16 @@ class WebSocketManager:
     # Leave a room
     async def leave_room(self, websocket: WebSocket, room_code: str):
         user_id = self.connections[websocket]
+        room = self.rooms[room_code]
         if room_code in self.rooms:
-            del self.rooms[room_code].players[user_id]
+            del room.players[user_id]
             await websocket.send_json({"message": "Left room"})
+            await websocket.close()
         else:
             await websocket.send_json({"message": "Room does not exist"})
+
+        # Notify other players
+        player_leave = ActionSchema(action="leave", data={"id": room.players[user_id].id})
+
+        # Broadcast the player leaving
+        await room.broadcast_except(player_leave, user_id)

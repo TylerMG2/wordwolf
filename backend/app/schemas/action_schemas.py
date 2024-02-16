@@ -1,6 +1,8 @@
 from pydantic import BaseModel
-from app.schemas.player_schema import OtherPlayerSchema
+from app.schemas.room_schema import RoomSchema
+from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
 
+# Base action schemas
 class ActionSchema(BaseModel):
     action: str
-    data: dict
+    data: RoomSchema | OtherPlayerSchema

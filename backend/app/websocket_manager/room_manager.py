@@ -1,11 +1,14 @@
 from fastapi import WebSocket
 from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
+from app.schemas.action_schemas import ActionSchema
 from app.schemas.room_schema import RoomSchema
 from pydantic import BaseModel
+import uuid
 
 # Player class
 class Player:
     def __init__(self, websocket: WebSocket ,username: str, is_host: bool):
+        self.id = str(uuid.uuid4())
         self.websocket = websocket
         self.username = username
         self.active = True
@@ -16,6 +19,7 @@ class Player:
     # Convert to player schema
     def to_player_schema(self, user_id: str):
         return PlayerSchema(
+            id=self.id,
             username=self.username,
             active=self.active,
             word=self.word,
@@ -27,6 +31,7 @@ class Player:
     # Convert to other player schema
     def to_other_player_schema(self):
         return OtherPlayerSchema(
+            id=self.id,
             username=self.username,
             active=self.active,
             is_host=self.is_host
@@ -42,7 +47,7 @@ class Room:
     # Convert to room schema
     def to_schema(self, user_id: str):
         return RoomSchema(
-            players=[player.to_other_player_schema() for player in self.players.values()],
+            players={player.id: player.to_other_player_schema() for player in self.players.values()},
             game_state=self.game_state,
             you=self.players[user_id].to_player_schema(user_id)
         )
@@ -60,16 +65,16 @@ class Room:
             self.players[user_id] = Player(websocket, username, is_host)
 
     # Send message to all players in the room
-    async def broadcast(self, message: BaseModel):
+    async def broadcast(self, message: ActionSchema):
         for player in self.players.values():
             await player.websocket.send_json(message.model_dump_json())
     
     # Send message to all players in the room except the sender
-    async def broadcast_except(self, message: BaseModel, sender: str):
+    async def broadcast_except(self, message: ActionSchema, sender: str):
         for user_id, player in self.players.items():
             if user_id != sender:
                 await player.websocket.send_json(message.model_dump_json())
         
     # Send message to a specific player
-    async def send_to(self, message: BaseModel, receiver: str):
+    async def send_to(self, message: ActionSchema, receiver: str):
         await self.players[receiver].websocket.send_json(message.model_dump_json())

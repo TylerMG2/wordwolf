@@ -33,19 +33,19 @@ class TestPlayerJoin:
             data = ws.receive_json()
 
             # Convert response to room schema
-            data = RoomSchema.model_validate_json(data)
+            action = ActionSchema.model_validate_json(data)
 
         # Assertions
-        assert isinstance(data, RoomSchema)
-        assert all(isinstance(player, OtherPlayerSchema) for player in data.players)
-        assert isinstance(data.you, PlayerSchema)
-        assert data.you.is_host == is_host
-        assert data.you.username == username or "No name"
-        assert data.you.active == True
-        assert data.you.user_id == user_id
+        assert action.action == "game_state"
+        assert all(isinstance(player, OtherPlayerSchema) for player in action.data.players.values())
+        assert isinstance(action.data.you, PlayerSchema)
+        assert action.data.you.is_host == is_host
+        assert action.data.you.username == username or "No name"
+        assert action.data.you.active == True
+        assert action.data.you.user_id == user_id
     
     # Test other player joining the room
-    async def test_other_player_join(self, websocket_connection, fetch_room_details):
+    async def test_other_player_join(self, websocket_connection):
             
         # First player joins
         ws : WebSocket
@@ -56,22 +56,19 @@ class TestPlayerJoin:
             ws2 : WebSocket
             with websocket_connection(self.room_code, "other_user_id", "other_user") as ws2:
                 data = ws2.receive_json()
-                second_player_data = RoomSchema.model_validate_json(data)
+                join_action = ActionSchema.model_validate_json(data)
             
             # Convert to player join schema
             player_join = ws.receive_json()
-            print(player_join)
             player_join = ActionSchema.model_validate_json(player_join)
         
         # Assertions second player
-        assert isinstance(second_player_data, RoomSchema)
-        assert len(second_player_data.players) == 2
-        assert second_player_data.you.user_id == "other_user_id"
+        assert len(join_action.data.players) == 2
+        assert join_action.data.you.user_id == "other_user_id"
 
         # Assertions first player
         assert isinstance(player_join, ActionSchema)
-        new_player = OtherPlayerSchema.model_validate_json(dumps(player_join.data))
-        assert new_player.username == "other_user"
+        assert player_join.data.username == "other_user"
     
     # Test joining a non-existent room
     # Expected to fail

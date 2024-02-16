@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, Query, HTTPException, Response
 from app.schemas.room_schema import RoomCreate
+from app.schemas.action_schemas import ActionSchema
 from app.websocket_manager import WebSocketManager
 import os
 
@@ -56,12 +57,9 @@ async def websocket_endpoint(websocket: WebSocket, room: str = Query(None), user
             return        
     
         while True:
-            # Wait for data
+            # Get the action
             data = await websocket.receive_json()
-
-            # Parse the data
-            action = data.get("action")
-            room = data.get("room_code")
+            action = ActionSchema.model_validate_json(data)
 
             # Handle the action
             if action == "leave":

@@ -5,6 +5,6 @@ class RoomCreate(BaseModel):
     user_id: str
 
 class RoomSchema(BaseModel):
-    players: list[OtherPlayerSchema]
+    players: dict[str, OtherPlayerSchema]
     game_state: str
     you: PlayerSchema

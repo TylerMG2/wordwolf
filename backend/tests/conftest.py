@@ -3,7 +3,9 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from app.main import app
+from json import dumps
 from dotenv import load_dotenv
+from app.schemas.room_schema import RoomSchema
 load_dotenv()
 
 @pytest.fixture
@@ -37,11 +39,3 @@ def websocket_connection():
         
         return client.websocket_connect(websocket_url)
     return _connection
-
-@pytest_asyncio.fixture
-async def fetch_room_details():
-    async def _fetch(room_code: str, user_id: str):
-        async with AsyncClient(app=app, base_url="http://test") as ac:
-            response = await ac.get(f"/api/rooms/{room_code}?user_id={user_id}")
-            return response.json()
-    return _fetch

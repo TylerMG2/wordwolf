@@ -66,8 +66,8 @@ class Room:
     
     # Send message to all players in the room except the sender
     async def broadcast_except(self, message: BaseModel, sender: str):
-        for player in self.players.values():
-            if player.user_id != sender:
+        for user_id, player in self.players.items():
+            if user_id != sender:
                 await player.websocket.send_json(message.model_dump_json())
         
     # Send message to a specific player

@@ -1,5 +1,5 @@
 from fastapi import WebSocket
-from app.schemas.action_schemas import PlayerJoinSchema
+from app.schemas.action_schemas import ActionSchema
 import uuid
 from .room_manager import Room
 
@@ -31,7 +31,7 @@ class WebSocketManager:
         await room.send_to(game_state, user_id)
 
         # Broadcast the new player to the room
-        player_join = PlayerJoinSchema(player=room.players[user_id].to_other_player_schema())
+        player_join = ActionSchema(action="leave", data=room.players[user_id].to_other_player_schema().model_dump())
         await room.broadcast_except(player_join, user_id)
 
     # On disconnect

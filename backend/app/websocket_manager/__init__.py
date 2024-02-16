@@ -2,87 +2,38 @@ from fastapi import WebSocket
 from app.schemas.action_schemas import ActionSchema
 from app.schemas.player_schema import PlayerIdSchema
 import uuid
-from .room_manager import Room
+from .room_manager import RoomManager, Player
 
 # Manager for websocket connections
 class WebSocketManager:
     def __init__(self):
-        self.connections: dict[WebSocket, str] = {}
-        self.rooms: dict[str, Room] = {}
-
-    # On connect
-    async def connect(self, websocket: WebSocket, room_id: str, user_id: str, username: str):
-        
-        # Add the connection
-        self.connections[websocket] = user_id
-
-        # Check if the room exists
-        if room_id not in self.rooms:
-            raise Exception("Room does not exist")
-        
-        # Accept the connection
-        await websocket.accept()
-
-        # Else join the room
-        room = self.rooms[room_id]
-        room.player_join(websocket, user_id, username)
-
-        # Send the room data to the joining player
-        game_state = room.to_schema(user_id)
-        await room.send_to(ActionSchema(action="game_state", data=game_state), user_id)
-
-        # Broadcast the new player to the room
-        player_join = ActionSchema(action="player_join", data=room.players[user_id].to_other_player_schema())
-        await room.broadcast_except(player_join, user_id)
-
-    # On disconnect
-    async def disconnect(self, websocket: WebSocket):
-        user_id = self.connections[websocket]
-
-        # Remove the connection
-        del self.connections[websocket]
-
-        # Set the user to inactive
-        for room in self.rooms.values():
-            if user_id in room.players:
-                room.players[user_id].active = False
-        
-        # Notify other players
-        player_disconnect = ActionSchema(action="player_disconnect", data=PlayerIdSchema(player_id=user_id))
-        for room in self.rooms.values():
-            if user_id in room.players:
-                await room.broadcast_except(player_disconnect, user_id)
+        self.rooms: dict[str, RoomManager] = {}
 
     # Create a room
-    async def create_room(self, host: str):
+    async def create_room(self, nickname: str):
 
-        # Generate a room code
-        room_code = str(uuid.uuid4())[:6]
-        while room_code in self.rooms:
-            room_code = str(uuid.uuid4())[:6]
-        room_code = room_code.upper()
+        # Generate a unique room code
+        room_id = str(uuid.uuid4())[:6]
+        while room_id in self.rooms:
+            room_id = str(uuid.uuid4())[:6]
+        room_id = room_id.upper()
 
         # Create the room
-        self.rooms[room_code] = Room(host)
-        return room_code
+        room = RoomManager()
+        player_id, credentials = room.add_player(nickname, True)
+        self.rooms[room_id] = room
+
+        # Return the room code
+        return room_id, player_id, credentials
     
-    # Leave a room
-    async def leave_room(self, websocket: WebSocket, room_code: str):
-        user_id = self.connections[websocket]
-        room = self.rooms[room_code]
-        if room_code in self.rooms:
-            del room.players[user_id]
-            await websocket.send_json({"message": "Left room"})
+    # Join a room
+    async def join_room(self, room_id: str, nickname: str):
+                
+        # Join the room
+        room = self.rooms[room_id]
+        player_id, credentials = room.add_player(nickname)
+        return player_id, credentials
 
-            # Notify other players
-            player_leave = ActionSchema(action="player_leave", data=PlayerIdSchema(player_id=user_id))
-
-            # Broadcast the player leaving
-            await room.broadcast_except(player_leave, user_id)
-        else:
-            await websocket.send_json({"message": "Room does not exist"})
-        
-        # Close the websocket
-        await websocket.close()
+    
 
         

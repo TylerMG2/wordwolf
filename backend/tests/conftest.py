@@ -5,15 +5,15 @@ from httpx import AsyncClient
 from app.main import app
 from json import dumps
 from dotenv import load_dotenv
-from app.schemas.room_schema import RoomSchema
+from app.schemas.room_schema import RoomJoinResponse
 load_dotenv()
 
 @pytest.fixture
 def create_room():
-    async def _create_room(user_id: str = "test_host_id"):
+    async def _create_room(nickname: str):
         async with AsyncClient(app=app, base_url="http://test") as ac:
-            response = await ac.post("/api/rooms/", json={"user_id": user_id})
-            return response.json()["code"]
+            response = await ac.post("/api/rooms/", json={"nickname": nickname})
+            return RoomJoinResponse.model_validate_json(response.json()) 
     return _create_room
 
 @pytest_asyncio.fixture

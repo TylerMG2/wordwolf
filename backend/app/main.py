@@ -1,5 +1,5 @@
-from fastapi import FastAPI, WebSocket, Query, HTTPException, Response
-from app.schemas.room_schema import RoomCreate
+from fastapi import FastAPI, WebSocket, Query, HTTPException, Response, status
+from app.schemas.room_schema import RoomCreate, RoomJoinResponse
 from app.schemas.action_schemas import ActionSchema
 from app.websocket_manager import WebSocketManager
 import os
@@ -17,20 +17,25 @@ manager = WebSocketManager()
 async def create_room(room_create: RoomCreate): 
 
     # Create the room
-    room_code = await manager.create_room(room_create.user_id)
+    room_id, player_id, credentials = await manager.create_room(room_create.nickname)
 
     # Return the room code
-    return {"code": room_code}
+    return RoomJoinResponse(room_id=room_id, player_id=player_id, credentials=credentials).model_dump_json()
 
-# Room info endpoint
-@app.get("/api/rooms/{room_code}")
-async def room_info(room_code: str, user_id: str = Query(None)):
-
-    # Check if we are in testing
-    if os.getenv('ENV') != "TEST":
-        return HTTPException(status_code=404, detail="Not found")
-
-    return manager.rooms[room_code].to_schema(user_id)
+# Join room endpoint
+@app.post("/api/rooms/{room_id}")
+async def join_room(room_id: str, room_join: RoomCreate, response: Response):
+    
+        # Check if the room exists
+        if room_id not in manager.rooms:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return {"detail": "Room not found"} 
+    
+        # Join the room
+        player_id, credentials = await manager.join_room(room_id, room_join.nickname)
+    
+        # Return the room code
+        return RoomJoinResponse(room_id=room_id, player_id=player_id, credentials=credentials).model_dump_json()
 
 # Websocket route
 @app.websocket("/ws")

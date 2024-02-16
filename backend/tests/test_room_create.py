@@ -1,32 +1,33 @@
 import pytest
 from http import HTTPStatus
+from app.schemas.room_schema import RoomJoinResponse
+from httpx import AsyncClient
 
-# Constants
-USER_ID = "test_user_id"
-
-# Test room creation
 @pytest.mark.asyncio
-async def test_create_room(test_client):
-    response = await test_client.post("/api/rooms/", json={"user_id": "test_user_id"})
+class TestRoomCreate:
 
-    # Check response
-    assert response.status_code == 200
-    assert "code" in response.json()
+    NICKNAME = "Test User"
+    
+    # Test room creation
+    async def test_create_room(self, test_client: AsyncClient):
+        response = await test_client.post("/api/rooms/", json={"nickname": self.NICKNAME})
+        assert RoomJoinResponse.model_validate_json(response.json())
 
-# Test room creation with no user_id
-@pytest.mark.asyncio
-async def test_create_room_no_user_id(test_client):
-    response = await test_client.post("/api/rooms/", json={})
+        # Check response
+        assert response.status_code == 200
+    
+    # Test room creation with no user_id
+    async def test_create_room_no_user_id(self, test_client: AsyncClient):
+        response = await test_client.post("/api/rooms/", json={})
 
-    # Check response
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert any(error["loc"] == ["body", "user_id"] for error in response.json()["detail"])
+        # Check response
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert any(error["loc"] == ["body", "nickname"] for error in response.json()["detail"])
 
-# Test room creation with no json
-@pytest.mark.asyncio
-async def test_create_room_no_json(test_client):
-    response = await test_client.post("/api/rooms/")
+    # Test room creation with no json
+    async def test_create_room_no_json(self, test_client: AsyncClient):
+        response = await test_client.post("/api/rooms/")
 
-    # Check response
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert any(error["loc"] == ["body"] for error in response.json()["detail"])
+        # Check response
+        assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+        assert any(error["loc"] == ["body"] for error in response.json()["detail"])

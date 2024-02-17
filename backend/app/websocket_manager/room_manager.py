@@ -1,58 +1,20 @@
-from fastapi import WebSocket
-from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
-from app.schemas.action_schemas import ActionSchema
-from app.schemas.room_schema import RoomSchema
-from pydantic import BaseModel
-import uuid
-
-# Player class
-class Player:
-
-    websocket: WebSocket
-    player_id: int
-    username: str
-    credentials: str
-    word: str = ""
-    is_host: bool = False
-    is_connected: bool = False
-    is_spy: bool = False
-
-    def __init__(self, player_id: int, username: str, is_host: bool):
-        self.player_id = player_id
-        self.username = username
-        self.is_host = is_host
-        self.credentials = str(uuid.uuid4())
-    
-    # Convert to player schema
-    def to_player_schema(self, user_id: str):
-        return PlayerSchema(
-            player_id=self.player_id,
-            username=self.username,
-            active=self.active,
-            word=self.word,
-            is_host=self.is_host,
-            is_spy=self.is_spy,
-            user_id=user_id
-        )
-
-    # Convert to other player schema
-    def to_other_player_schema(self):
-        return OtherPlayerSchema(
-            player_id=self.player_id,
-            username=self.username,
-            active=self.active,
-            is_host=self.is_host
-        )
+from app.schemas import RoomSchema
+from app.websocket_manager.player_manager import Player
 
 # Room class
-class RoomManager:
+class Room:
 
+    room_id: str
     host_id: int
     players: dict[str, Player] = {}
     game_state: str = "lobby"
 
+    # Init room
+    def __init__(self, room_id: str):
+        self.room_id = room_id
+
     # Add a player to the room
-    def add_player(self, username: str, is_host: bool = False) -> tuple[int, str]:
+    async def add_player(self, username: str, is_host: bool = False) -> tuple[int, str]:
         
         # Find the next available player id
         player_id = 0
@@ -69,13 +31,15 @@ class RoomManager:
 
         return player_id, player.credentials
 
-    # # Convert to room schema
-    # def to_schema(self, user_id: str):
-    #     return RoomSchema(
-    #         players={player.player_id: player.to_other_player_schema() for player in self.players.values()},
-    #         game_state=self.game_state,
-    #         you=self.players[user_id].to_player_schema(user_id)
-    #     )
+    # Convert to room schema
+    def to_schema(self, player_id: int) -> RoomSchema:
+        return RoomSchema(
+            room_id=self.room_id,
+            host_id=self.host_id,
+            players={player_id: player.to_other_player_schema() for player_id, player in self.players.items()},
+            game_state=self.game_state,
+            you=self.players[player_id].to_player_schema()
+        )
     
     # # Add a player to the room
     # def player_join(self, websocket: WebSocket, user_id: str, username: str):

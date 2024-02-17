@@ -1,79 +1,48 @@
-from fastapi import FastAPI, WebSocket, Query, HTTPException, Response, status
-from app.schemas.room_schema import RoomCreate, RoomJoinResponse
-from app.schemas.action_schemas import ActionSchema
-from app.websocket_manager import WebSocketManager
-import os
-
-print(os.getenv('ENV'))
+from fastapi import FastAPI, HTTPException
+from app.schemas import RoomCreate, RoomJoinResponse
+from app.websocket_manager import Room
+import uuid
+import uvicorn
 
 # Create app
 app = FastAPI()
 
-# Create websocket manager
-manager = WebSocketManager()
+# Store rooms
+rooms : dict[str, Room] = {}
 
 # Create room endpoint
 @app.post("/api/rooms/")
 async def create_room(room_create: RoomCreate): 
 
+    # Generate a unique room code
+    room_id = str(uuid.uuid4())[:6]
+    while room_id in rooms:
+        room_id = str(uuid.uuid4())[:6]
+    room_id = room_id.upper()
+
     # Create the room
-    room_id, player_id, credentials = await manager.create_room(room_create.nickname)
+    room = Room(room_id)
+    player_id, credentials = await room.add_player(room_create.nickname, True)
+    rooms[room_id] = room
+    print(rooms, room_id, player_id, credentials)
 
     # Return the room code
     return RoomJoinResponse(room_id=room_id, player_id=player_id, credentials=credentials).model_dump_json()
 
 # Join room endpoint
 @app.post("/api/rooms/{room_id}")
-async def join_room(room_id: str, room_join: RoomCreate, response: Response):
+async def join_room(room_id: str, room_join: RoomCreate):
     
-        # Check if the room exists
-        if room_id not in manager.rooms:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return {"detail": "Room not found"} 
-    
-        # Join the room
-        player_id, credentials = await manager.join_room(room_id, room_join.nickname)
-    
-        # Return the room code
-        return RoomJoinResponse(room_id=room_id, player_id=player_id, credentials=credentials).model_dump_json()
+    # Check if the room exists
+    if room_id not in rooms:
+        raise HTTPException(status_code=404, detail="Room not found")
 
-# Websocket route
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, room: str = Query(None), user_id: str = Query(None), username: str = "No name"):
+    # Join the room
+    room = rooms[room_id]
+    player_id, credentials = await room.add_player(room_join.nickname)
 
-    # Handle initial connection
-    try:
+    # Return the room code
+    return RoomJoinResponse(room_id=room_id, player_id=player_id, credentials=credentials).model_dump_json()
 
-        # Check if the user_id is provided
-        if user_id is None:
-            await websocket.close(code=4001, reason="User ID not provided")
-            return
-
-        # Check if the room is provided
-        if room is None:
-            await websocket.close(code=4001, reason="Room code not provided")
-            return
-
-        # Attempt to connect
-        try: 
-            await manager.connect(websocket, room, user_id, username)
-        except Exception as e:
-            await websocket.close(code=4001, reason=str(e))
-            return        
-    
-        while True:
-            # Get the action
-            data = await websocket.receive_json()
-            action = ActionSchema.model_validate_json(data)
-
-            # Handle the action
-            if action == "leave":
-                await manager.leave_room(websocket, room)
-            elif action == "ping":
-                await websocket.send_text("pong")
-            else:
-                await websocket.send_text("Invalid action")
-    except Exception as e:
-        pass
-    finally:
-        await manager.disconnect(websocket)
+if __name__ == '__main__':
+    uvicorn.run("main:app", host="0.0.0.0", port=8081, reload=True, access_log=False)

@@ -1,39 +1,36 @@
 import pytest
 import pytest_asyncio
 from starlette.websockets import WebSocketDisconnect
-from app.schemas.player_schema import OtherPlayerSchema, PlayerSchema
-from app.schemas.room_schema import RoomSchema, RoomJoinResponse
-from app.schemas.action_schemas import ActionSchema
+from app.schemas import RoomSchema, RoomJoinResponse, ActionSchema
 from starlette.websockets import WebSocket
-from json import dumps
 
 @pytest.mark.asyncio
 class TestPlayerJoin:
 
-    USERNAME = "Test User"
+    NICKNAME = "Test User"
     room : RoomJoinResponse = None
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, create_room):
-        self.room = await create_room(user_id=self.USERNAME)
+        self.room = await create_room(nickname=self.NICKNAME)
 
     # Test joining the room
     @pytest.mark.parametrize("user_role, expected_host_status", [
         ("host", True),
         ("other_user", False),
     ])
-    async def test_user_join(self, room, websocket_connection, join_room, user_role, expected_host_status):
+    async def test_user_join(self, user_role, expected_host_status, websocket_connection, join_room):
 
         # If the user is not the host, join the room
         player_id, credentials = self.room.player_id, self.room.credentials
         if user_role != "host":
             new_player : RoomJoinResponse = await join_room(self.room.room_id, user_role)
             player_id, credentials = new_player.player_id, new_player.credentials            
-
+        print(self.room.room_id, player_id, credentials)
         # Establish a websocket connection
         ws : WebSocket
-        async with websocket_connection(room.room_id, player_id, credentials) as ws:
-            data = await ws.receive_json()
+        with websocket_connection(self.room.room_id, player_id, credentials) as ws:
+            data = ws.receive_json()
             game_state = ActionSchema.model_validate_json(data)
 
         # Assertions
@@ -47,33 +44,40 @@ class TestPlayerJoin:
         assert room_data.players[player_id].is_host == expected_host_status
         assert room_data.players[player_id].is_connected
     
-    # Test joining a non-existent room
-    # Expected to fail
-    @pytest.mark.parametrize("room_id, player_id, credentials, expected message", [
-        ("invalid_room", room.player_id, room.credentials, "Room not found"),
-        (room.room_id, "invalid_player", room.credentials, "User not found"),
-        (room.room_id, room.player_id, "invalid_credentials", "Invalid credentials"),
+    # Test joining a room with invalid parameters
+    @pytest.mark.parametrize("valid_room_id, valid_player_id, valid_credentials, error_message", [
+        (False, True, True, "Room not found"),
+        (True, False, True, "Player not found"),
+        (True, True, False, "Invalid credentials"),
     ])
-    async def test_invalid_join(self, room_id, player_id, credentials, expected_message, websocket_connection):
+    async def test_invalid_parameters(self, valid_room_id, valid_player_id, valid_credentials, error_message, websocket_connection):
         with pytest.raises(WebSocketDisconnect) as e:
-            with websocket_connection(room_id, player_id, credentials) as ws:
+
+            # Set invalid parameters
+            if valid_room_id:
+                self.room.room_id = "invalid_room_id"
+            if valid_player_id:
+                self.room.player_id = 999
+            if valid_credentials:
+                self.room.credentials = "invalid_credentials"
+
+            with websocket_connection(self.room.room_id, self.room.player_id, self.room.credentials) as ws:
                 pass
+        print(e)
         assert e.value.code == 4001
-        assert e.value.reason == expected_message
-    
+        assert e.value.reason == error_message
+
     # Test missing parameters
     # Expected to fail
-    @pytest.mark.parametrize("room_id, player_id, credentials", [
-        (None, room.player_id, room.credentials),
-        (room.room_id, None, room.credentials),
-        (room.room_id, room.player_id, None),
+    @pytest.mark.parametrize("room_id, player_id, credentials, error_message", [
+        (None, True, True, "No room_id provided"),
     ])
-    async def test_missing_parameters(self, room_id, player_id, credentials, websocket_connection):
+    async def test_missing_parameters(self, room_id, player_id, credentials, error_message, websocket_connection):
         with pytest.raises(WebSocketDisconnect) as e:
             with websocket_connection(room_id, player_id, credentials) as ws:
                 pass
         assert e.value.code == 4001
-        assert e.value.reason == "Missing parameters"
+        assert e.value.reason == "No room_id provided" if room_id is None else "No player_id provided" if player_id is None else "No credentials provided"
     
     # Test other player joining the room
     async def test_other_player_join(self, websocket_connection, join_room):

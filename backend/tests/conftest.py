@@ -25,25 +25,28 @@ def join_room():
     return _join_room
 
 @pytest_asyncio.fixture
-async def test_client(scope="session"):
+async def test_client(scope="module"):
     async with AsyncClient(app=app, base_url="http://test") as client:
         yield client
 
 @pytest.fixture
 def websocket_connection(): 
-    def _connection(room_id, user_id, credentials):
+    async def _connection(room_id, player_id, credentials):
         client = TestClient(app)
         
         # Construct the websocket URL
         websocket_url = "/ws?"
 
         # Add each query parameter
-        if room_id:
+        if room_id != None:
             websocket_url += f"room_id={room_id}&"
-        if user_id:
-            websocket_url += f"user_id={user_id}&"
-        if credentials:
+        if player_id != None:
+            websocket_url += f"player_id={player_id}&"
+        if credentials != None:
             websocket_url += f"credentials={credentials}"
-        
-        return client.websocket_connect(websocket_url)
+        print(websocket_url)
+        ws = client.websocket_connect(websocket_url)
+        yield ws
+        await ws.close()
+
     return _connection

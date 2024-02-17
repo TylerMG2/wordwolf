@@ -3,7 +3,7 @@ from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
 import uuid
 
 # Player class
-class Player:
+class PlayerManager:
 
     websocket: WebSocket
     player_id: int

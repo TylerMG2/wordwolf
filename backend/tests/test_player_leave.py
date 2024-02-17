@@ -2,7 +2,7 @@ import pytest
 import pytest_asyncio
 from starlette.websockets import WebSocket
 from app.main import manager
-from app.schemas.action_schemas import ActionSchema
+from backend.app.schemas.action_schema import ActionSchema
 
 @pytest.mark.asyncio
 class TestPlayerLeave:

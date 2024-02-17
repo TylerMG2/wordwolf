@@ -1,13 +1,5 @@
 from pydantic import BaseModel
-from app.schemas.player_schema import OtherPlayerSchema, PlayerSchema
-
-class RoomCreate(BaseModel):
-    nickname: str
-
-class RoomJoinResponse(BaseModel):
-    room_id: str
-    player_id: int
-    credentials: str
+from .player_schema import OtherPlayerSchema, PlayerSchema
 
 class RoomSchema(BaseModel):
     room_id: str

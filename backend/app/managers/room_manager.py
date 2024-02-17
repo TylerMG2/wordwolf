@@ -1,12 +1,12 @@
 from app.schemas import RoomSchema
-from app.websocket_manager.player_manager import Player
+from .player_manager import PlayerManager
 
 # Room class
-class Room:
+class RoomManager:
 
     room_id: str
     host_id: int
-    players: dict[str, Player] = {}
+    players: dict[str, PlayerManager] = {}
     game_state: str = "lobby"
 
     # Init room
@@ -26,7 +26,7 @@ class Room:
             self.host = player_id
 
         # Create the player
-        player = Player(player_id, username, is_host)
+        player = PlayerManager(player_id, username, is_host)
         self.players[player_id] = player
 
         return player_id, player.credentials

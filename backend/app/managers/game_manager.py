@@ -1,9 +1,30 @@
 from .room_manager import RoomManager
 from .player_manager import PlayerManager
+from ..schemas import ActionSchema
 
 # Game manager class for managing the game logic
 class GameManager:
 
     # Starts the game for a room
-    def start_game(self, room: RoomManager, player: PlayerManager):
-        pass
+    async def start_game(self, room: RoomManager, player: PlayerManager):
+        
+        # Check if the game has already started
+        if room.game_state != "lobby":
+            await player.websocket.send_json(ActionSchema(action="error", data="Game already started").model_dump_json())
+            return False
+
+        # Check if the player is the host
+        if player.player_id != room.host_id:
+            await player.websocket.send_json(ActionSchema(action="error", data="Only the host can start the game").model_dump_json())
+            return False
+
+        # Check if there are enough players
+        if len(room.get_connected_players()) < 3:
+            await player.websocket.send_json(ActionSchema(action="error", data="Cannot start game with less than 3 players").model_dump_json())
+            return False
+
+        # Start the game
+        room.game_state = "in_progress"
+        await room.broadcast(ActionSchema(action="game_started", data=""))
+        return True
+        

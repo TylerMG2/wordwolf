@@ -12,6 +12,7 @@ class RoomManager:
     # Init room
     def __init__(self, room_id: str):
         self.room_id = room_id
+        self.host_id = -1
         self.players = {}
         self.game_state = "lobby"
     

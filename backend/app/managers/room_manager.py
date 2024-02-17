@@ -6,15 +6,17 @@ class RoomManager:
 
     room_id: str
     host_id: int
-    players: dict[str, PlayerManager] = {}
-    game_state: str = "lobby"
+    players: dict[int, PlayerManager]
+    game_state: str
 
     # Init room
     def __init__(self, room_id: str):
         self.room_id = room_id
-
+        self.players = {}
+        self.game_state = "lobby"
+    
     # Add a player to the room
-    async def add_player(self, username: str, is_host: bool = False) -> tuple[int, str]:
+    async def add_player(self, nickname: str, is_host: bool = False) -> tuple[int, str]:
         
         # Find the next available player id
         player_id = 0
@@ -23,10 +25,10 @@ class RoomManager:
 
         # If the player is the host, set the host
         if is_host:
-            self.host = player_id
+            self.host_id = player_id
 
         # Create the player
-        player = PlayerManager(player_id, username, is_host)
+        player = PlayerManager(player_id, nickname, is_host)
         self.players[player_id] = player
 
         return player_id, player.credentials

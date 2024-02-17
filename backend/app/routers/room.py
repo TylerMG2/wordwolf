@@ -21,11 +21,12 @@ class RoomResponse(BaseModel):
     credentials: str
 
 # Create room endpoint
-@router.post("/")
+@router.post("")
 async def create_room(room_create: RoomRequest) -> RoomResponse: 
 
     # Create a room
     room = await manager.create_room()
+    print(room.players)
 
     # Join the room
     player_id, credentials = await room.add_player(room_create.nickname, is_host=True)

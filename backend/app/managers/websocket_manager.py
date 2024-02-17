@@ -17,6 +17,7 @@ class WebsocketManager():
         room_id = room_id.upper()
 
         room = RoomManager(room_id)
+        
         self.rooms[room_id] = room
         return room
 

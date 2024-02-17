@@ -105,3 +105,13 @@ async def test_room_send_to_specific_player():
     assert len(player_2.websocket.data) == 0
     assert player.websocket.data[0].action == "test"
     assert player.websocket.data[0].data == "test"
+
+# Test get all active players
+def test_get_all_active_players():
+    room = RoomManager(1)
+    player = room.add_player("test")
+    player_2 = room.add_player("test")
+    player_3 = room.add_player("test")
+    player.connect(MockWebsocket())
+    player_2.connect(MockWebsocket())
+    assert room.get_all_active_players() == [player, player_2]

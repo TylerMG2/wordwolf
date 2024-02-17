@@ -3,7 +3,7 @@ from ..managers import WebsocketManager
 from ..schemas import ActionSchema
 
 # Manager
-manager = WebsocketManager()
+connection_manager = WebsocketManager()
 
 router = APIRouter(
     tags=["websocket"],
@@ -24,7 +24,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         player_id = int(player_id)
 
         # Connect to the room and send the game state
-        room, player = await manager.player_connected(room_id, player_id, credentials, websocket)
+        room, player = await connection_manager.player_connected(room_id, player_id, credentials, websocket)
         await websocket.accept()
 
         # Send the game state to the player
@@ -39,7 +39,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
 
             # Handle the action
             if action.action == "leave":
-                await manager.player_left(room, player)
+                await connection_manager.player_left(room, player)
 
     except WebSocketException as e:
         await websocket.close(code=e.code, reason=e.reason)
@@ -47,4 +47,4 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         await websocket.close()
     finally:
         if player is not None:
-            await manager.player_disconnected(room, player)
+            await connection_manager.player_disconnected(room, player)

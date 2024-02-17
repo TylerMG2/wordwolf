@@ -2,6 +2,8 @@ import pytest
 from app.managers import WebsocketManager, RoomManager, PlayerManager
 from .mock_websocket import MockWebsocket
 
+### Tests to do with connecting and disconnecting players from the WebsocketManager
+
 # Fixture for the WebsocketManager
 @pytest.fixture
 def manager():

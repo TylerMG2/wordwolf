@@ -5,4 +5,4 @@ from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema, PlayerIdS
 # Base action schemas
 class ActionSchema(BaseModel):
     action: str
-    data: RoomSchema | OtherPlayerSchema | PlayerIdSchema
+    data: RoomSchema | OtherPlayerSchema | PlayerIdSchema | str

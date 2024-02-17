@@ -1,9 +1,9 @@
 from fastapi import WebSocket, WebSocketException, APIRouter, WebSocketDisconnect
-from ..managers import WebsocketManager
+from ..managers import ConnectionManager
 from ..schemas import ActionSchema
 
 # Manager
-connection_manager = WebsocketManager()
+connection_manager = ConnectionManager()
 
 router = APIRouter(
     tags=["websocket"],

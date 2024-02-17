@@ -1,5 +1,5 @@
 import pytest
-from app.managers import WebsocketManager, RoomManager, PlayerManager
+from app.managers import ConnectionManager, RoomManager, PlayerManager
 from .mock_websocket import MockWebsocket
 
 ### Tests to do with connecting and disconnecting players from the WebsocketManager
@@ -7,7 +7,7 @@ from .mock_websocket import MockWebsocket
 # Fixture for the WebsocketManager
 @pytest.fixture
 def manager():
-    return WebsocketManager()
+    return ConnectionManager()
 
 # Fixture for creating a room
 @pytest.fixture
@@ -16,7 +16,7 @@ def room(manager):
 
 # Fixture for connecting a player
 @pytest.fixture
-def connect_player(manager: WebsocketManager, room: RoomManager):
+def connect_player(manager: ConnectionManager, room: RoomManager):
     async def _connect(nickname="test", host=False) -> tuple[PlayerManager, MockWebsocket]:
         player = room.add_player(nickname, host)
         ws = MockWebsocket()
@@ -25,7 +25,7 @@ def connect_player(manager: WebsocketManager, room: RoomManager):
     return _connect
 
 # Test create_room method
-def test_create_room(manager: WebsocketManager):
+def test_create_room(manager: ConnectionManager):
     previous_rooms = manager.rooms.copy()
     room = manager.create_room()
 
@@ -64,7 +64,7 @@ async def test_multiple_players_connected(connect_player):
 
 # Test player disconnection
 @pytest.mark.asyncio
-async def test_player_disconnected(room: RoomManager, connect_player, manager: WebsocketManager):
+async def test_player_disconnected(room: RoomManager, connect_player, manager: ConnectionManager):
     player1, _ = await connect_player("test1")
     _, ws2 = await connect_player("test2")
 
@@ -81,7 +81,7 @@ async def test_player_disconnected(room: RoomManager, connect_player, manager: W
 
 # Test removal of room after all players are disconnected
 @pytest.mark.asyncio
-async def test_room_removal_on_all_disconnected(room : RoomManager, connect_player, manager: WebsocketManager):
+async def test_room_removal_on_all_disconnected(room : RoomManager, connect_player, manager: ConnectionManager):
     player1, _ = await connect_player("test1")
     player2, _ = await connect_player("test2")
 
@@ -93,7 +93,7 @@ async def test_room_removal_on_all_disconnected(room : RoomManager, connect_play
 
 # Test normal player leaving
 @pytest.mark.asyncio
-async def test_player_leaving(room, connect_player, manager: WebsocketManager):
+async def test_player_leaving(room, connect_player, manager: ConnectionManager):
     player1, ws1 = await connect_player("test1", True)
     player2, ws2 = await connect_player("test2")
     player3, ws3 = await connect_player("test3")
@@ -117,7 +117,7 @@ async def test_player_leaving(room, connect_player, manager: WebsocketManager):
 
 # Test host leaving does not remove room immediately
 @pytest.mark.asyncio
-async def test_host_leaving(room, connect_player, manager: WebsocketManager):
+async def test_host_leaving(room, connect_player, manager: ConnectionManager):
     player1, ws1 = await connect_player("host", True)
     player2, ws2 = await connect_player("guest")
 
@@ -142,7 +142,7 @@ async def test_host_leaving(room, connect_player, manager: WebsocketManager):
 
 # Test host leaving removes room if no new host is found
 @pytest.mark.asyncio
-async def test_host_leaving_no_new_host(room, connect_player, manager: WebsocketManager):
+async def test_host_leaving_no_new_host(room, connect_player, manager: ConnectionManager):
     player1, ws1 = await connect_player("host", True)
     player2, ws2 = await connect_player("guest")
     player3, ws3 = await connect_player("guest2")
@@ -160,7 +160,7 @@ async def test_host_leaving_no_new_host(room, connect_player, manager: Websocket
 
 # Test reconnecting with the same player_id
 @pytest.mark.asyncio
-async def test_reconnect_same_player_id(room, connect_player, manager: WebsocketManager):
+async def test_reconnect_same_player_id(room, connect_player, manager: ConnectionManager):
     player1, ws1 = await connect_player("test1")
     player2, ws2 = await connect_player("test2")
 

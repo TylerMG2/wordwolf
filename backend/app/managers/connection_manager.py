@@ -4,7 +4,8 @@ from ..schemas import ActionSchema
 from fastapi import WebSocket, WebSocketException
 import uuid
 
-class WebsocketManager():
+# Connection manager class for managing the connections to rooms
+class ConnectionManager():
 
     rooms : dict[str, RoomManager] = {}
 

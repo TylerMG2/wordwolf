@@ -44,6 +44,10 @@ class RoomManager:
                 return False
         return True
 
+    # Get all connected players
+    def get_connected_players(self) -> list[PlayerManager]:
+        return [player for player in self.players.values() if player.is_connected]
+
     # Convert to room schema
     def to_schema(self, player_id: int) -> RoomSchema:
         return RoomSchema(

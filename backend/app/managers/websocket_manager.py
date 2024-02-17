@@ -43,7 +43,7 @@ class WebsocketManager():
         player.connect(websocket)
 
         # Update all players in the room on the new player
-        await room.broadcast_except(ActionSchema(action="player_join", data=player.to_other_player_schema()), player_id)
+        await room.broadcast_except(ActionSchema(action="played_connected", data=player.to_other_player_schema()), player_id)
         return room, player
 
     # On player disconnect
@@ -58,3 +58,27 @@ class WebsocketManager():
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():
             del self.rooms[room.room_id]
+
+    # On player leave
+    async def player_leave(self, room: RoomManager, player: PlayerManager):
+
+        # Remove the player from the room
+        room.remove_player(player.player_id)
+
+        # Check if the player was the host
+        if player.is_host:
+            if room.players:
+                new_host = list(room.players.values())[0]
+                new_host.is_host = True
+                room.host_id = new_host.player_id
+                await room.broadcast(ActionSchema(action="host_change", data=new_host.to_other_player_schema()))
+
+        # Update all players in the room on the player leaving
+        await room.broadcast(ActionSchema(action="player_leave", data=player.to_other_player_schema()))
+
+        # If all players are disconnected, delete the room
+        if room.all_players_disconnected():
+            del self.rooms[room.room_id]
+
+        # Close player connection
+        await player.websocket.close(code=1000, reason="Player left")

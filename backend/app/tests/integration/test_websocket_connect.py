@@ -100,7 +100,7 @@ class TestWebsocketConnect:
             action = ActionSchema.model_validate_json(data)
 
             # Check the response
-            assert action.action == "player_join"
+            assert action.action == "played_connected"
             assert action.data.player_id == player_2.player_id
             assert action.data.nickname == "test2"
             assert action.data.is_host == False

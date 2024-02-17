@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
-from .room import RoomResponse
-from ..main import app
+from app.routers.room import RoomResponse
+from app.main import app
 
 client = AsyncClient(app=app, base_url="http://test")
 

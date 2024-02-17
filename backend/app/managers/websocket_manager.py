@@ -9,7 +9,7 @@ class WebsocketManager():
     rooms : dict[str, RoomManager] = {}
 
     # Create a room
-    async def create_room(self) -> RoomManager:
+    def create_room(self) -> RoomManager:
 
         # Generate a unique room code
         room_id = str(uuid.uuid4())[:6]
@@ -21,17 +21,9 @@ class WebsocketManager():
 
         self.rooms[room_id] = room
         return room
-
-    # Join a room
-    async def join_room(self, room_id: str, username: str) -> tuple[RoomManager, int, str]:
-
-        # Join the room
-        room = self.rooms[room_id]
-        player_id, credentials = await room.add_player(username)
-        return room, player_id, credentials
     
     # Connect to a room
-    async def connect_to_room(self, room_id: str, player_id: int, credentials: str, websocket: WebSocket) -> tuple[RoomManager, PlayerManager]:
+    async def player_connected(self, room_id: str, player_id: int, credentials: str, websocket: WebSocket) -> tuple[RoomManager, PlayerManager]:
 
         # Check if the room exists
         if room_id not in self.rooms:
@@ -53,3 +45,16 @@ class WebsocketManager():
         # Update all players in the room on the new player
         await room.broadcast_except(ActionSchema(action="player_join", data=player.to_other_player_schema()), player_id)
         return room, player
+
+    # On player disconnect
+    async def player_disconnected(self, room: RoomManager, player: PlayerManager):
+            
+        # Disconnect the player
+        player.disconnect()
+
+        # Update all players in the room on the player leaving
+        await room.broadcast_except(ActionSchema(action="player_disconnected", data=player.to_other_player_schema()), player.player_id)
+
+        # If all players are disconnected, delete the room
+        if room.all_players_disconnected():
+            del self.rooms[room.room_id]

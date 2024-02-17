@@ -2,9 +2,9 @@ from httpx import AsyncClient
 import pytest, pytest_asyncio
 from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
-from ..schemas import RoomSchema, ActionSchema
-from .room import RoomResponse
-from ..main import app
+from app.schemas import ActionSchema
+from app.routers.room import RoomResponse
+from app.main import app
 
 @pytest.mark.asyncio
 class TestWebsocketConnect:
@@ -104,5 +104,5 @@ class TestWebsocketConnect:
             assert action.data.player_id == player_2.player_id
             assert action.data.nickname == "test2"
             assert action.data.is_host == False
-            
+
         

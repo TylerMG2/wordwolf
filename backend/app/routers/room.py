@@ -25,14 +25,13 @@ class RoomResponse(BaseModel):
 async def create_room(room_create: RoomRequest) -> RoomResponse: 
 
     # Create a room
-    room = await manager.create_room()
-    print(room.players)
+    room = manager.create_room()
 
     # Join the room
-    player_id, credentials = await room.add_player(room_create.nickname, is_host=True)
+    player = room.add_player(room_create.nickname, is_host=True)
 
     # Return the room code
-    return RoomResponse(room_id=room.room_id, player_id=player_id, credentials=credentials)
+    return RoomResponse(room_id=room.room_id, player_id=player.player_id, credentials=player.credentials)
 
 # Join room endpoint
 @router.post("/{room_id}")
@@ -41,9 +40,10 @@ async def join_room(room_id: str, room_join: RoomRequest) -> RoomResponse:
     # Check if the room exists
     if room_id not in manager.rooms:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Room not found")
+    room = manager.rooms[room_id]
     
     # Join the room
-    room, player_id, credentials = await manager.join_room(room_id, room_join.nickname)  
+    player = room.add_player(room_join.nickname) 
 
     # Return the room code
-    return RoomResponse(room_id=room.room_id, player_id=player_id, credentials=credentials)
+    return RoomResponse(room_id=room.room_id, player_id=player.player_id, credentials=player.credentials)

@@ -16,7 +16,7 @@ class RoomManager:
         self.game_state = "lobby"
     
     # Add a player to the room
-    async def add_player(self, nickname: str, is_host: bool = False) -> tuple[int, str]:
+    def add_player(self, nickname: str, is_host: bool = False) -> PlayerManager:
         
         # Find the next available player id
         player_id = 0
@@ -31,7 +31,18 @@ class RoomManager:
         player = PlayerManager(player_id, nickname, is_host)
         self.players[player_id] = player
 
-        return player_id, player.credentials
+        return player
+
+    # Remove a player from the room
+    def remove_player(self, player_id: int):
+        del self.players[player_id]
+    
+    # Check if all players are disconnected
+    def all_players_disconnected(self) -> bool:
+        for player in self.players.values():
+            if player.is_connected:
+                return False
+        return True
 
     # Convert to room schema
     def to_schema(self, player_id: int) -> RoomSchema:

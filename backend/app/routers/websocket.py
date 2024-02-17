@@ -24,7 +24,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         player_id = int(player_id)
 
         # Connect to the room and send the game state
-        room, player = await manager.connect_to_room(room_id, player_id, credentials, websocket)
+        room, player = await manager.player_connected(room_id, player_id, credentials, websocket)
         await websocket.accept()
 
         # Send the game state to the player

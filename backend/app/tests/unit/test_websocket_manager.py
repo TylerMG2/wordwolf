@@ -137,3 +137,21 @@ async def test_host_leaving(room, connect_player, manager: WebsocketManager):
     latest_data_ws2 = ws2.data[-2]
     assert latest_data_ws2.action == "host_change"
     assert latest_data_ws2.data.player_id == player2.player_id
+
+# Test host leaving removes room if no new host is found
+@pytest.mark.asyncio
+async def test_host_leaving_no_new_host(room, connect_player, manager: WebsocketManager):
+    player1, ws1 = await connect_player("host", True)
+    player2, ws2 = await connect_player("guest")
+    player3, ws3 = await connect_player("guest2")
+
+    await manager.player_left(room, player2)
+    await manager.player_disconnected(room, player3)
+
+    # Check that the room was not removed
+    assert room.room_id in manager.rooms
+
+    await manager.player_left(room, player1)
+
+    # Check that the room was removed
+    assert room.room_id not in manager.rooms

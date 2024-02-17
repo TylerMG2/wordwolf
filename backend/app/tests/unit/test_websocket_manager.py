@@ -155,3 +155,21 @@ async def test_host_leaving_no_new_host(room, connect_player, manager: Websocket
 
     # Check that the room was removed
     assert room.room_id not in manager.rooms
+
+# Test reconnecting with the same player_id
+@pytest.mark.asyncio
+async def test_reconnect_same_player_id(room, connect_player, manager: WebsocketManager):
+    player1, ws1 = await connect_player("test1")
+    player2, ws2 = await connect_player("test2")
+
+    await manager.player_disconnected(room, player1)
+
+    # Check that the player was disconnected
+    assert player1.is_connected == False
+    assert player1.websocket is None
+
+    room, new_player = await manager.player_connected(room.room_id, player1.player_id, player1.credentials, ws1)
+
+    # Check that the player was reconnected
+    assert player1.is_connected == True
+    assert player1.websocket is not None

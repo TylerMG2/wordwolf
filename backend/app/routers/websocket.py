@@ -1,6 +1,6 @@
 from fastapi import WebSocket, WebSocketException, APIRouter, WebSocketDisconnect
 from ..managers import ConnectionManager
-from ..schemas import ActionSchema
+from ..schemas import IncomingActionSchema, IncomingActionType
 
 # Manager
 connection_manager = ConnectionManager()
@@ -25,20 +25,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
 
         # Connect to the room and send the game state
         room, player = await connection_manager.player_connected(room_id, player_id, credentials, websocket)
-        await websocket.accept()
-
-        # Send the game state to the player
-        await websocket.send_json(ActionSchema(action="game_state", data=room.to_schema(player_id)).model_dump_json())
 
         # Listen for actions
         while True:
 
             # Get the action
             data = await websocket.receive_json()
-            action = ActionSchema.model_validate_json(data)
+            action = IncomingActionSchema.model_validate_json(data)
 
             # Handle the action
-            if action.action == "leave":
+            if action.action == IncomingActionType.LEAVE_ROOM:
                 await connection_manager.player_left(room, player)
 
     except WebSocketException as e:

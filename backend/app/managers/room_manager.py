@@ -1,5 +1,5 @@
 from .player_manager import PlayerManager
-from ..schemas import ActionSchema, RoomSchema
+from ..schemas import OutgoingActionSchema, RoomSchema
 
 # Room class
 class RoomManager:
@@ -60,17 +60,17 @@ class RoomManager:
         )
 
     # Send message to all players in the room
-    async def broadcast(self, message: ActionSchema):
+    async def broadcast(self, message: OutgoingActionSchema):
         for player in self.players.values():
             if player.is_connected:
                 await player.websocket.send_json(message.model_dump_json())
     
     # Send message to all players in the room except the sender
-    async def broadcast_except(self, message: ActionSchema, sender_id: int):
+    async def broadcast_except(self, message: OutgoingActionSchema, sender_id: int):
         for player_id, player in self.players.items():
             if player_id != sender_id and player.is_connected:
                 await player.websocket.send_json(message.model_dump_json())
     
     # Send message to a specific player
-    async def send_to(self, message: ActionSchema, receiver_id: int):
+    async def send_to(self, message: OutgoingActionSchema, receiver_id: int):
         await self.players[receiver_id].websocket.send_json(message.model_dump_json())

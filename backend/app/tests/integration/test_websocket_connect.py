@@ -2,7 +2,7 @@ from httpx import AsyncClient
 import pytest, pytest_asyncio
 from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
-from app.schemas import ActionSchema
+from app.schemas import OutgoingActionSchema, OutgoingActionType, IncomingActionSchema, IncomingActionType
 from app.routers.room import RoomResponse
 from app.main import app
 
@@ -32,10 +32,10 @@ class TestWebsocketConnect:
         client = TestClient(app)
         with client.websocket_connect(f"/ws?room_id={self.room.room_id}&player_id={self.room.player_id}&credentials={self.room.credentials}") as ws:
             data = ws.receive_json()
-            action = ActionSchema.model_validate_json(data)
+            action = OutgoingActionSchema.model_validate_json(data)
 
             # Check the response
-            assert action.action == "game_state"
+            assert action.action == OutgoingActionType.GAME_STATE
             assert action.data.room_id == self.room.room_id
             assert self.room.player_id in action.data.players
             assert len(action.data.players) == (1 if is_host else 2)
@@ -86,10 +86,10 @@ class TestWebsocketConnect:
             # Player 2 connects
             with client.websocket_connect(f"/ws?room_id={player_2.room_id}&player_id={player_2.player_id}&credentials={player_2.credentials}") as ws2:
                 data = ws2.receive_json()
-                action = ActionSchema.model_validate_json(data)
+                action = OutgoingActionSchema.model_validate_json(data)
 
                 # Check the response
-                assert action.action == "game_state"
+                assert action.action == OutgoingActionType.GAME_STATE
                 assert action.data.room_id == self.room.room_id
                 assert player_2.player_id in action.data.players
                 assert len(action.data.players) == 2
@@ -97,10 +97,10 @@ class TestWebsocketConnect:
 
             # Get player join action
             data = ws.receive_json()
-            action = ActionSchema.model_validate_json(data)
+            action = OutgoingActionSchema.model_validate_json(data)
 
             # Check the response
-            assert action.action == "played_connected"
+            assert action.action == OutgoingActionType.PLAYER_CONNECTED
             assert action.data.player_id == player_2.player_id
             assert action.data.nickname == "test2"
             assert action.data.is_host == False

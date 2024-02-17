@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from app.schemas.room_schema import RoomSchema
-from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema, PlayerIdSchema
+from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
 from enum import Enum
 
 # Action types

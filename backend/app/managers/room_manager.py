@@ -1,5 +1,5 @@
-from app.schemas import RoomSchema
 from .player_manager import PlayerManager
+from ..schemas import ActionSchema, RoomSchema
 
 # Room class
 class RoomManager:
@@ -42,24 +42,19 @@ class RoomManager:
             game_state=self.game_state,
             you=self.players[player_id].to_player_schema()
         )
-    
-    # # Add a player to the room
-    # def player_join(self, websocket: WebSocket, user_id: str, username: str):
-    #     player = Player(len(self.players), username, False)
-    #     player.websocket = websocket
-    #     self.players[user_id] = player
 
     # Send message to all players in the room
-    # async def broadcast(self, message: ActionSchema):
-    #     for player in self.players.values():
-    #         await player.websocket.send_json(message.model_dump_json())
+    async def broadcast(self, message: ActionSchema):
+        for player in self.players.values():
+            if player.is_connected:
+                await player.websocket.send_json(message.model_dump_json())
     
-    # # Send message to all players in the room except the sender
-    # async def broadcast_except(self, message: ActionSchema, sender: str):
-    #     for user_id, player in self.players.items():
-    #         if user_id != sender:
-    #             await player.websocket.send_json(message.model_dump_json())
-        
-    # # Send message to a specific player
-    # async def send_to(self, message: ActionSchema, receiver: str):
-    #     await self.players[receiver].websocket.send_json(message.model_dump_json())
+    # Send message to all players in the room except the sender
+    async def broadcast_except(self, message: ActionSchema, sender_id: int):
+        for player_id, player in self.players.items():
+            if player_id != sender_id and player.is_connected:
+                await player.websocket.send_json(message.model_dump_json())
+    
+    # Send message to a specific player
+    async def send_to(self, message: ActionSchema, receiver_id: int):
+        await self.players[receiver_id].websocket.send_json(message.model_dump_json())

@@ -1,5 +1,5 @@
 from fastapi import WebSocket
-from app.schemas.player_schema import PlayerSchema, OtherPlayerSchema
+from ..schemas import PlayerSchema, OtherPlayerSchema
 import uuid
 
 # Player class
@@ -15,6 +15,7 @@ class PlayerManager:
     is_spy: bool = False
 
     def __init__(self, player_id: int, nickname: str, is_host: bool):
+        self.websocket = None
         self.player_id = player_id
         self.nickname = nickname
         self.is_host = is_host

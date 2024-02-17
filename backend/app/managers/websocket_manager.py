@@ -1,5 +1,6 @@
 from .room_manager import RoomManager
 from .player_manager import PlayerManager
+from ..schemas import ActionSchema
 from fastapi import WebSocket, WebSocketException
 import uuid
 
@@ -17,7 +18,7 @@ class WebsocketManager():
         room_id = room_id.upper()
 
         room = RoomManager(room_id)
-        
+
         self.rooms[room_id] = room
         return room
 
@@ -34,18 +35,21 @@ class WebsocketManager():
 
         # Check if the room exists
         if room_id not in self.rooms:
-            raise WebSocketException(status_code=4001, detail="Room not found")
+            raise WebSocketException(4001, "Room not found")
         room : RoomManager = self.rooms[room_id]
         
         # Check if the player exists
         if player_id not in room.players:
-            raise WebSocketException(status_code=4001, detail="Player not found")
+            raise WebSocketException(4001, "Player not found")
         player : PlayerManager = room.players[player_id]
 
         # Check if the credentials are correct
         if player.credentials != credentials:
-            return WebSocketException(status_code=4001, detail="Invalid credentials")
+            raise WebSocketException(4001, "Incorrect credentials")
         
         # Attempt to connect
         player.connect(websocket)
+
+        # Update all players in the room on the new player
+        await room.broadcast_except(ActionSchema(action="player_join", data=player.to_other_player_schema()), player_id)
         return room, player

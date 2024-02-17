@@ -38,6 +38,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
             action = ActionSchema.model_validate_json(data)
 
             # Handle the action
+            if action.action == "leave":
+                await manager.player_left(room, player)
 
     except WebSocketException as e:
         await websocket.close(code=e.code, reason=e.reason)
@@ -45,4 +47,4 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         await websocket.close()
     finally:
         if player is not None:
-            player.disconnect()
+            await manager.player_disconnected(room, player)

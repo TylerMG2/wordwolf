@@ -20,8 +20,8 @@ class IncomingActionType(str, Enum):
 # Base action schemas
 class OutgoingActionSchema(BaseModel):
     action: OutgoingActionType
-    data: RoomSchema | OtherPlayerSchema | PlayerIdSchema | str
+    data: RoomSchema | OtherPlayerSchema | PlayerSchema | int | str
 
 class IncomingActionSchema(BaseModel):
     action: IncomingActionType
-    data: PlayerSchema | str
+    data: PlayerSchema | str | int

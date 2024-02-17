@@ -1,9 +1,10 @@
 from fastapi import WebSocket, WebSocketException, APIRouter, WebSocketDisconnect
-from ..managers import ConnectionManager
+from ..managers import ConnectionManager, GameManager
 from ..schemas import IncomingActionSchema, IncomingActionType
 
-# Manager
+# Managers
 connection_manager = ConnectionManager()
+game_manager = GameManager()
 
 router = APIRouter(
     tags=["websocket"],
@@ -36,6 +37,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
             # Handle the action
             if action.action == IncomingActionType.LEAVE_ROOM:
                 await connection_manager.player_left(room, player)
+            elif action.action == IncomingActionType.START_GAME:
+                await game_manager.start_game(room, player)
 
     except WebSocketException as e:
         await websocket.close(code=e.code, reason=e.reason)

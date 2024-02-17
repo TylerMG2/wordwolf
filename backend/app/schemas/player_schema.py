@@ -13,6 +13,3 @@ class PlayerSchema(BaseModel):
     is_host: bool
     is_spy: bool
     is_connected: bool
-
-class PlayerIdSchema(BaseModel):
-    player_id: int

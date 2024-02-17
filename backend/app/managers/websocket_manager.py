@@ -60,7 +60,7 @@ class WebsocketManager():
             del self.rooms[room.room_id]
 
     # On player leave
-    async def player_leave(self, room: RoomManager, player: PlayerManager):
+    async def player_left(self, room: RoomManager, player: PlayerManager):
 
         # Remove the player from the room
         room.remove_player(player.player_id)
@@ -68,17 +68,31 @@ class WebsocketManager():
         # Check if the player was the host
         if player.is_host:
             if room.players:
-                new_host = list(room.players.values())[0]
-                new_host.is_host = True
-                room.host_id = new_host.player_id
-                await room.broadcast(ActionSchema(action="host_change", data=new_host.to_other_player_schema()))
+
+                # Find the next player to be the host
+                new_host = None
+                for p in room.players.values():
+                    if p.is_connected:
+                        new_host = p
+                        break
+                
+                # Check if a new host was found
+                if new_host:
+                    new_host.is_host = True
+                    room.host_id = new_host.player_id
+                    await room.broadcast(ActionSchema(action="host_change", data=new_host.to_other_player_schema()))
+                else:
+                    # Delete the room if no new host was found
+                    del self.rooms[room.room_id]
+                    await player.websocket.close(code=1000, reason="Room deleted")
+                    return
 
         # Update all players in the room on the player leaving
-        await room.broadcast(ActionSchema(action="player_leave", data=player.to_other_player_schema()))
+        await room.broadcast(ActionSchema(action="player_left", data=player.to_other_player_schema()))
 
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():
             del self.rooms[room.room_id]
 
         # Close player connection
-        await player.websocket.close(code=1000, reason="Player left")
+        await player.websocket.close(code=1000, reason="Left Room")

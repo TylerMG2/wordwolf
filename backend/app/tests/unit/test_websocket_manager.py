@@ -102,10 +102,16 @@ async def test_player_leaving(room, connect_player, manager: WebsocketManager):
     assert player2.player_id not in room.players
 
     # Check that other players were notified about the player leaving
-    assert ws1.data.action == "player_left"
-    assert ws1.data.data.player_id == player2.player_id
-    assert ws3.data.action == "player_left"
-    assert ws3.data.data.player_id == player2.player_id
+    latest_data_ws1 = ws1.data[-1]
+    assert latest_data_ws1.action == "player_left"
+    assert latest_data_ws1.data.player_id == player2.player_id
+    latest_data_ws3 = ws3.data[-1]
+    assert latest_data_ws3.action == "player_left"
+    assert latest_data_ws3.data.player_id == player2.player_id
+
+    # Check player2's websocket was closed
+    assert ws2.code == 1000
+    assert ws2.reason == "Left Room"
 
 # Test host leaving does not remove room immediately
 @pytest.mark.asyncio
@@ -115,9 +121,19 @@ async def test_host_leaving(room, connect_player, manager: WebsocketManager):
 
     await manager.player_left(room, player1)
 
-    # Check that the room was removed
-    assert room.room_id not in manager.rooms
+    # Check that the player was removed
+    assert player1.player_id not in room.players
 
-    # Check that the guest was notified about the host leaving
-    assert ws2.code == 1000
-    assert ws2.reason == "Host left the room"
+    # Check that the host was reassigned
+    assert room.host_id == player2.player_id
+    assert player2.is_host == True
+
+    # Check that other players were notified about the host leaving
+    latest_data_ws2 = ws2.data[-1]
+    assert latest_data_ws2.action == "player_left"
+    assert latest_data_ws2.data.player_id == player1.player_id
+
+    # Check that the players were notified about the host change
+    latest_data_ws2 = ws2.data[-2]
+    assert latest_data_ws2.action == "host_change"
+    assert latest_data_ws2.data.player_id == player2.player_id

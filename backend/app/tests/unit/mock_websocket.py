@@ -14,4 +14,5 @@ class MockWebsocket:
         self.data.append(ActionSchema.model_validate_json(data))
 
     async def close(self, code=None, reason=None):
-        pass
+        self.code = code
+        self.reason = reason

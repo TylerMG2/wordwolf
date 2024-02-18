@@ -63,7 +63,7 @@ class GameManager:
         
         # Start the game
         self.state = GameState.IN_PROGRESS
-        self.room.game_state = self.state
+        self.room.game_state = GameState.IN_PROGRESS
 
         # Setup
         self.spy = choice(self.players)

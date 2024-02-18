@@ -10,6 +10,11 @@ class GameEvent(str, Enum):
     GAME_STATE = "game_state"
     PLAYER_TURN = "player_turn"
     GAME_OVER = "game_over"
+    CALL_VOTE = "call_vote"
+    VOTE = "vote"
+    ASK_QUESTION = "ask_question"
+    ANSWER_QUESTION = "answer_question"
+    SPY_GUESS = "spy_guess"
     ERROR = "error"
 
 # Room event types

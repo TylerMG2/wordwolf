@@ -102,31 +102,3 @@ class ConnectionManager():
 
         # Close player connection
         await player.websocket.close(code=1000, reason="Left Room")
-    
-    # On start game
-    async def start_game(self, room: RoomManager, player: PlayerManager) -> GameManager:
-
-        # Check if the player is the host
-        if player.player_id != room.host_id:
-            await player.send(RoomEvent.ERROR, "Only the host can start the game")
-            return None
-
-        # Check if the room has enough players
-        if len(room.get_connected_players()) < 3:
-            await player.send(RoomEvent.ERROR, "Not enough players to start the game")
-            return None
-        
-        # Check if the room is already in a game
-        if room.game_state != "lobby":
-            await player.send(RoomEvent.ERROR, "The game has already started")
-            return None
-
-        # Update state
-        room.game_state = "in_progress"
-
-        # Create the game manager
-        game_manager = GameManager(room, list(room.players.values()))
-
-        # Start the game
-        await game_manager.start_game()
-        return game_manager

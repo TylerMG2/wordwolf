@@ -30,7 +30,7 @@ class PlayerManager:
         self.websocket = None
     
     # Convert to player schema
-    def to_schema(self):
+    def to_schema(self) -> PlayerSchema:
         return PlayerSchema(
             player_id=self.player_id,
             nickname=self.nickname,

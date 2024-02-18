@@ -7,17 +7,16 @@ from random import choice, shuffle
 class GameManager:
 
     state: GameState
-    players: list[PlayerManager]
     room: RoomManager
+    players: list[PlayerManager]
     turn: int
     spy: PlayerManager
     spy_word: str
     word: str
 
     # Init game manager
-    def __init__(self, room: RoomManager, players: list[PlayerManager]):
-        self.state = GameState.STARTING
-        self.players = players
+    def __init__(self, room: RoomManager):
+        self.state = GameState.LOBBY
         self.room = room
         self.spy = None
 
@@ -42,8 +41,29 @@ class GameManager:
                 await player.send(action, data)
 
     # Starts the game for a room
-    async def start_game(self):
+    async def start_game(self, player: PlayerManager) -> bool:
+
+        # Get the players
+        self.players = self.room.get_connected_players()
+
+        # Checks
+        if player.player_id != self.room.host_id:
+            await player.send(RoomEvent.ERROR, "Only the host can start the game")
+            return False
+
+        # Check if the room has enough players
+        if len(self.players) < 3:
+            await player.send(RoomEvent.ERROR, "Cannot start game with less than 3 players")
+            return False
+        
+        # Check if the room is already in a game
+        if self.state != GameState.LOBBY:
+            await player.send(RoomEvent.ERROR, "The game has already started")
+            return False
+        
+        # Start the game
         self.state = GameState.IN_PROGRESS
+        self.room.game_state = self.state
 
         # Setup
         self.spy = choice(self.players)
@@ -59,4 +79,5 @@ class GameManager:
         # Send the game started event with different roles to each player
         await self.spy.send(RoomEvent.GAME_START, self.to_schema(spy_role))
         await self.broadcast_except(RoomEvent.GAME_START, self.to_schema(player_role), self.spy.player_id)
+        return True
         

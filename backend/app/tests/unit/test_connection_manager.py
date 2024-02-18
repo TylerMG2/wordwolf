@@ -18,7 +18,7 @@ def room(manager):
 
 # Fixture for connecting a player
 @pytest.fixture
-def connect_player(manager: ConnectionManager, room: RoomManager) -> Callable[[str, bool], tuple[PlayerManager, MockWebsocket]]:
+def connect_player(manager: ConnectionManager, room: RoomManager) -> Callable[[str, bool], Tuple[PlayerManager, MockWebsocket]]:
     async def _connect(nickname="test", host=False) -> Tuple[PlayerManager, MockWebsocket]:
         player = room.add_player(nickname, host)
         ws = MockWebsocket()
@@ -77,7 +77,7 @@ async def test_player_disconnected(room: RoomManager, connect_player, manager: C
     assert player1.websocket is None
 
     # Check that player2 was notified about player1's disconnection
-    latest_data = ws2.data.pop()
+    latest_data : EventSchema = ws2.data.pop()
     assert latest_data.action == RoomEvent.PLAYER_DISCONNECTED
     assert latest_data.data.player_id == player1.player_id
 

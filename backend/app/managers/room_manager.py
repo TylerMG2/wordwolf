@@ -1,5 +1,5 @@
 from .player_manager import PlayerManager
-from ..schemas import RoomSchema, ActionTypes, EventDataTypes
+from ..schemas import RoomSchema, ActionTypes, EventDataTypes, GameState
 
 # Room class
 class RoomManager:
@@ -7,15 +7,15 @@ class RoomManager:
     room_id: str
     host_id: int
     players: dict[int, PlayerManager]
-    game_state: str
+    game_state: GameState
 
     # Init room
     def __init__(self, room_id: str):
         self.room_id = room_id
         self.host_id = -1
         self.players = {}
-        self.game_state = "lobby"
-    
+        self.game_state = GameState.IN_PROGRESS
+
     # Add a player to the room
     def add_player(self, nickname: str, is_host: bool = False) -> PlayerManager:
         

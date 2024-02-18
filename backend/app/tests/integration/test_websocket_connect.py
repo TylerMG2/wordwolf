@@ -36,7 +36,7 @@ class TestWebsocketConnect:
 
             # Check the response
             assert action.action == RoomEvent.ROOM_STATE
-            assert action.data == self.room.room_id
+            assert action.data.room_id == self.room.room_id
             assert self.room.player_id in action.data.players
             assert len(action.data.players) == (1 if is_host else 2)
             assert action.data.players[self.room.player_id].nickname == self.NICKNAME

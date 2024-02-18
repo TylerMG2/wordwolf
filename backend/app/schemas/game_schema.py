@@ -4,6 +4,7 @@ from .player_schema import PlayerSchema, PlayerRoleSchema
 
 # Game states
 class GameState(str, Enum):
+    LOBBY = "lobby"
     STARTING = "starting"
     IN_PROGRESS = "in_progress"
     VOTING = "voting"

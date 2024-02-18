@@ -4,7 +4,6 @@ from ..schemas import EventSchema, RoomEvent, GameEvent
 
 # Managers
 connection_manager = ConnectionManager()
-game_manager = GameManager()
 
 router = APIRouter(
     tags=["websocket"],
@@ -27,6 +26,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         # Connect to the room and send the game state
         room, player = await connection_manager.player_connected(room_id, player_id, credentials, websocket)
 
+        # Setup the game manager
+        game : GameManager = GameManager(room)
+
         # Listen for player events
         while True:
 
@@ -38,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
             if action.action == RoomEvent.PLAYER_LEFT:
                 await connection_manager.player_left(room, player)
             elif action.action == RoomEvent.GAME_START:
-                await game_manager.start_game(room, player)
+                await game.start_game(player)
 
     except WebSocketException as e:
         await websocket.close(code=e.code, reason=e.reason)

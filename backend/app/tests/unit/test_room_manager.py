@@ -1,6 +1,6 @@
 from .mock_websocket import MockWebsocket
 from app.managers import RoomManager
-from app.schemas import OutgoingActionSchema, OutgoingActionType
+from app.schemas import RoomEventSchema, RoomEvent
 import pytest
 
 # Test add_player method
@@ -57,13 +57,13 @@ async def test_room_broadcast():
     player_2 = room.add_player("test")
     player.connect(MockWebsocket())
     player_2.connect(MockWebsocket())
-    await room.broadcast(OutgoingActionSchema(action=OutgoingActionType.GAME_STATE, data="test"))
+    await room.broadcast(RoomEventSchema(action=RoomEvent.GAME_STATE, data="test"))
 
     # Check that both players received the message
     assert len(player.websocket.data) == 1
     assert len(player_2.websocket.data) == 1
-    assert player.websocket.data[0].action == OutgoingActionType.GAME_STATE
-    assert player_2.websocket.data[0].action == OutgoingActionType.GAME_STATE
+    assert player.websocket.data[0].action == RoomEvent.GAME_STATE
+    assert player_2.websocket.data[0].action == RoomEvent.GAME_STATE
     assert player.websocket.data[0].data == "test"
     assert player_2.websocket.data[0].data == "test"
 
@@ -77,7 +77,7 @@ async def test_room_broadcast_except():
     player.connect(MockWebsocket())
     player_2.connect(MockWebsocket())
     player_3.connect(MockWebsocket())
-    await room.broadcast_except(OutgoingActionSchema(action=OutgoingActionType.GAME_STATE, data="test"), player.player_id)
+    await room.broadcast_except(RoomEventSchema(action=RoomEvent.GAME_STATE, data="test"), player.player_id)
 
     # Check that player 1 was not notified
     assert len(player.websocket.data) == 0
@@ -85,8 +85,8 @@ async def test_room_broadcast_except():
     # Check that the other players received the message
     assert len(player_2.websocket.data) == 1
     assert len(player_3.websocket.data) == 1
-    assert player_2.websocket.data[0].action == OutgoingActionType.GAME_STATE
-    assert player_3.websocket.data[0].action == OutgoingActionType.GAME_STATE
+    assert player_2.websocket.data[0].action == RoomEvent.GAME_STATE
+    assert player_3.websocket.data[0].action == RoomEvent.GAME_STATE
     assert player_2.websocket.data[0].data == "test"
     assert player_3.websocket.data[0].data == "test"
 
@@ -98,12 +98,12 @@ async def test_room_send_to_specific_player():
     player_2 = room.add_player("test")
     player.connect(MockWebsocket())
     player_2.connect(MockWebsocket())
-    await room.send_to(OutgoingActionSchema(action=OutgoingActionType.GAME_STATE, data="test"), player.player_id)
+    await room.send_to(RoomEventSchema(action=RoomEvent.GAME_STATE, data="test"), player.player_id)
 
     # Check that just player 1 received the message
     assert len(player.websocket.data) == 1
     assert len(player_2.websocket.data) == 0
-    assert player.websocket.data[0].action == OutgoingActionType.GAME_STATE
+    assert player.websocket.data[0].action == RoomEvent.GAME_STATE
     assert player.websocket.data[0].data == "test"
 
 # Test get all active players

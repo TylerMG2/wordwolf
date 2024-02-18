@@ -1,5 +1,6 @@
 from app.managers import ConnectionManager, GameManager, RoomManager, PlayerManager
 from .mock_websocket import MockWebsocket
+from app.schemas import RoomEvent
 import pytest
 
 # Fixture for ConnectionManager
@@ -43,9 +44,26 @@ async def test_start_game(room: RoomManager, connect_player, game_manager: GameM
     assert room.game_state == "in_progress"
 
     # Check that all players have been notified
-    assert ws1.data.pop().action == "game_started"
-    assert ws2.data.pop().action == "game_started"
-    assert ws3.data.pop().action == "game_started"
+    for ws in [ws1, ws2, ws3]:
+        assert ws.data[-1].action == RoomEvent.GAME_STARTED
+
+    # Check that only one player has been told they are the spy
+    spy_count = 0
+    for ws in [ws1, ws2, ws3]:
+        if ws.data[-1].data.is_spy:
+            spy_count += 1
+    assert spy_count == 1
+
+    # Check that each player has been given the same word except the spy
+    non_spy_word = None
+    for ws in [ws1, ws2, ws3]:
+        assert ws.data[-1].data.word is not None
+        assert ws.data[-1].data.word != ""
+        if not ws.data[-1].data.is_spy:
+            if non_spy_word is None:
+                non_spy_word = ws.data[-1].data.word
+            else:
+                assert non_spy_word == ws.data[-1].data.word
 
 # Test start_game method with less than 3 players and not the host
 @pytest.mark.parametrize("player_count, is_host, message", [
@@ -72,7 +90,7 @@ async def test_start_game_invalid(room: RoomManager, connect_player, game_manage
 
     # Check that the requesting player was notified
     ws1_last_message = ws1.data.pop()
-    assert ws1_last_message.action == "error"
+    assert ws1_last_message.action == RoomEvent.ERROR
     assert ws1_last_message.data == message
 
 # Test start_game method with the game already started
@@ -96,7 +114,7 @@ async def test_start_game_already_started(room: RoomManager, connect_player, gam
 
     # Check that the requesting player was notified
     ws1_last_message = ws1.data.pop()
-    assert ws1_last_message.action == "error"
+    assert ws1_last_message.action == RoomEvent.ERROR
     assert ws1_last_message.data == "Game already started"
 
     

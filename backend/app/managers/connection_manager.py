@@ -1,6 +1,7 @@
 from .room_manager import RoomManager
 from .player_manager import PlayerManager
-from ..schemas import OutgoingActionType, OutgoingActionSchema
+from .game_manager import GameManager
+from ..schemas import RoomEvent
 from fastapi import WebSocket, WebSocketException
 import uuid
 
@@ -45,10 +46,10 @@ class ConnectionManager():
 
         # Send the game state
         await websocket.accept()
-        await websocket.send_json(OutgoingActionSchema(action=OutgoingActionType.GAME_STATE, data=room.to_schema(player_id)).model_dump_json())
+        await player.send(RoomEvent.ROOM_STATE, room.to_schema(player_id))
 
         # Update all players in the room on the new player
-        await room.broadcast_except(OutgoingActionSchema(action=OutgoingActionType.PLAYER_CONNECTED, data=player.to_other_player_schema()), player_id)
+        await room.broadcast_except(RoomEvent.PLAYER_CONNECTED, player.to_schema(), player_id)
         return room, player
 
     # On player disconnect
@@ -58,7 +59,7 @@ class ConnectionManager():
         player.disconnect()
 
         # Update all players in the room on the player leaving
-        await room.broadcast_except(OutgoingActionSchema(action=OutgoingActionType.PLAYER_DISCONNECTED, data=player.to_other_player_schema()), player.player_id)
+        await room.broadcast_except(RoomEvent.PLAYER_DISCONNECTED, player.to_schema(), player.player_id)
 
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():
@@ -85,7 +86,7 @@ class ConnectionManager():
                 if new_host:
                     new_host.is_host = True
                     room.host_id = new_host.player_id
-                    await room.broadcast(OutgoingActionSchema(action=OutgoingActionType.HOST_CHANGED, data=new_host.to_other_player_schema()))
+                    await room.broadcast(RoomEvent.HOST_CHANGED, new_host.to_schema())
                 else:
                     # Delete the room if no new host was found
                     del self.rooms[room.room_id]
@@ -93,7 +94,7 @@ class ConnectionManager():
                     return
 
         # Update all players in the room on the player leaving
-        await room.broadcast(OutgoingActionSchema(action=OutgoingActionType.PLAYER_LEFT, data=player.to_other_player_schema()))
+        await room.broadcast(RoomEvent.PLAYER_LEFT, player.to_schema())
 
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():
@@ -101,3 +102,31 @@ class ConnectionManager():
 
         # Close player connection
         await player.websocket.close(code=1000, reason="Left Room")
+    
+    # On start game
+    async def start_game(self, room: RoomManager, player: PlayerManager) -> GameManager:
+
+        # Check if the player is the host
+        if player.player_id != room.host_id:
+            await player.send(RoomEvent.ERROR, "Only the host can start the game")
+            return None
+
+        # Check if the room has enough players
+        if len(room.get_connected_players()) < 3:
+            await player.send(RoomEvent.ERROR, "Not enough players to start the game")
+            return None
+        
+        # Check if the room is already in a game
+        if room.game_state != "lobby":
+            await player.send(RoomEvent.ERROR, "The game has already started")
+            return None
+
+        # Update state
+        room.game_state = "in_progress"
+
+        # Create the game manager
+        game_manager = GameManager(room, list(room.players.values()))
+
+        # Start the game
+        await game_manager.start_game()
+        return game_manager

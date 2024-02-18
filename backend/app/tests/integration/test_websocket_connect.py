@@ -2,7 +2,7 @@ from httpx import AsyncClient
 import pytest, pytest_asyncio
 from fastapi import WebSocketDisconnect
 from fastapi.testclient import TestClient
-from app.schemas import OutgoingActionSchema, OutgoingActionType, IncomingActionSchema, IncomingActionType
+from app.schemas import EventSchema, RoomEvent
 from app.routers.room import RoomResponse
 from app.main import app
 
@@ -32,16 +32,15 @@ class TestWebsocketConnect:
         client = TestClient(app)
         with client.websocket_connect(f"/ws?room_id={self.room.room_id}&player_id={self.room.player_id}&credentials={self.room.credentials}") as ws:
             data = ws.receive_json()
-            action = OutgoingActionSchema.model_validate_json(data)
+            action = EventSchema.model_validate_json(data)
 
             # Check the response
-            assert action.action == OutgoingActionType.GAME_STATE
-            assert action.data.room_id == self.room.room_id
+            assert action.action == RoomEvent.ROOM_STATE
+            assert action.data == self.room.room_id
             assert self.room.player_id in action.data.players
             assert len(action.data.players) == (1 if is_host else 2)
             assert action.data.players[self.room.player_id].nickname == self.NICKNAME
-            assert action.data.you.nickname == self.NICKNAME
-            assert action.data.you.is_host == is_host
+            assert action.data.you == self.room.player_id
             assert action.data.host_id == (self.room.player_id if is_host else 0)
 
     # Test connecting with invalid room_id, player_id, and credentials
@@ -86,10 +85,10 @@ class TestWebsocketConnect:
             # Player 2 connects
             with client.websocket_connect(f"/ws?room_id={player_2.room_id}&player_id={player_2.player_id}&credentials={player_2.credentials}") as ws2:
                 data = ws2.receive_json()
-                action = OutgoingActionSchema.model_validate_json(data)
+                action = EventSchema.model_validate_json(data)
 
                 # Check the response
-                assert action.action == OutgoingActionType.GAME_STATE
+                assert action.action == RoomEvent.ROOM_STATE
                 assert action.data.room_id == self.room.room_id
                 assert player_2.player_id in action.data.players
                 assert len(action.data.players) == 2
@@ -97,10 +96,10 @@ class TestWebsocketConnect:
 
             # Get player join action
             data = ws.receive_json()
-            action = OutgoingActionSchema.model_validate_json(data)
+            action = EventSchema.model_validate_json(data)
 
             # Check the response
-            assert action.action == OutgoingActionType.PLAYER_CONNECTED
+            assert action.action == RoomEvent.PLAYER_CONNECTED
             assert action.data.player_id == player_2.player_id
             assert action.data.nickname == "test2"
             assert action.data.is_host == False

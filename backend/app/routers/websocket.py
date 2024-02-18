@@ -1,6 +1,6 @@
 from fastapi import WebSocket, WebSocketException, APIRouter, WebSocketDisconnect
 from ..managers import ConnectionManager, GameManager
-from ..schemas import IncomingActionSchema, IncomingActionType
+from ..schemas import EventSchema, RoomEvent, GameEvent
 
 # Managers
 connection_manager = ConnectionManager()
@@ -27,17 +27,17 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         # Connect to the room and send the game state
         room, player = await connection_manager.player_connected(room_id, player_id, credentials, websocket)
 
-        # Listen for actions
+        # Listen for player events
         while True:
 
-            # Get the action
+            # Get the event
             data = await websocket.receive_json()
-            action = IncomingActionSchema.model_validate_json(data)
+            action = EventSchema.model_validate_json(data)
 
             # Handle the action
-            if action.action == IncomingActionType.LEAVE_ROOM:
+            if action.action == RoomEvent.PLAYER_LEFT:
                 await connection_manager.player_left(room, player)
-            elif action.action == IncomingActionType.START_GAME:
+            elif action.action == RoomEvent.GAME_START:
                 await game_manager.start_game(room, player)
 
     except WebSocketException as e:

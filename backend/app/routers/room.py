@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from .websocket import connection_manager
-from typing import Any
 from http import HTTPStatus
 
 router = APIRouter(

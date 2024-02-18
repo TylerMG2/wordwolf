@@ -1,7 +1,8 @@
 import pytest
 from app.managers import ConnectionManager, RoomManager, PlayerManager
 from .mock_websocket import MockWebsocket
-from app.schemas import OutgoingActionType
+from app.schemas import RoomEvent, EventSchema
+from typing import Callable, Tuple
 
 ### Tests to do with connecting and disconnecting players from the WebsocketManager
 
@@ -17,8 +18,8 @@ def room(manager):
 
 # Fixture for connecting a player
 @pytest.fixture
-def connect_player(manager: ConnectionManager, room: RoomManager):
-    async def _connect(nickname="test", host=False) -> tuple[PlayerManager, MockWebsocket]:
+def connect_player(manager: ConnectionManager, room: RoomManager) -> Callable[[str, bool], tuple[PlayerManager, MockWebsocket]]:
+    async def _connect(nickname="test", host=False) -> Tuple[PlayerManager, MockWebsocket]:
         player = room.add_player(nickname, host)
         ws = MockWebsocket()
         await manager.player_connected(room.room_id, player.player_id, player.credentials, ws)
@@ -56,11 +57,11 @@ async def test_multiple_players_connected(connect_player):
     assert all([player1.is_connected, player2.is_connected, player3.is_connected])
 
     # Check that the first and second players were notified about the third player's join
-    latest_data_ws1 = ws1.data.pop()
-    latest_data_ws2 = ws2.data.pop()
-    assert latest_data_ws1.action == OutgoingActionType.PLAYER_CONNECTED
+    latest_data_ws1 : EventSchema = ws1.data.pop()
+    latest_data_ws2 : EventSchema = ws2.data.pop()
+    assert latest_data_ws1.action == RoomEvent.PLAYER_CONNECTED
     assert latest_data_ws1.data.player_id == player3.player_id
-    assert latest_data_ws2.action == OutgoingActionType.PLAYER_CONNECTED
+    assert latest_data_ws2.action == RoomEvent.PLAYER_CONNECTED
     assert latest_data_ws2.data.player_id == player3.player_id
 
 # Test player disconnection
@@ -77,7 +78,7 @@ async def test_player_disconnected(room: RoomManager, connect_player, manager: C
 
     # Check that player2 was notified about player1's disconnection
     latest_data = ws2.data.pop()
-    assert latest_data.action == OutgoingActionType.PLAYER_DISCONNECTED
+    assert latest_data.action == RoomEvent.PLAYER_DISCONNECTED
     assert latest_data.data.player_id == player1.player_id
 
 # Test removal of room after all players are disconnected
@@ -106,10 +107,10 @@ async def test_player_leaving(room, connect_player, manager: ConnectionManager):
 
     # Check that other players were notified about the player leaving
     latest_data_ws1 = ws1.data.pop()
-    assert latest_data_ws1.action == OutgoingActionType.PLAYER_LEFT
+    assert latest_data_ws1.action == RoomEvent.PLAYER_LEFT
     assert latest_data_ws1.data.player_id == player2.player_id
     latest_data_ws3 = ws3.data.pop()
-    assert latest_data_ws3.action == OutgoingActionType.PLAYER_LEFT
+    assert latest_data_ws3.action == RoomEvent.PLAYER_LEFT
     assert latest_data_ws3.data.player_id == player2.player_id
 
     # Check player2's websocket was closed
@@ -133,12 +134,12 @@ async def test_host_leaving(room, connect_player, manager: ConnectionManager):
 
     # Check that other players were notified about the host leaving
     latest_data_ws2 = ws2.data.pop()
-    assert latest_data_ws2.action == OutgoingActionType.PLAYER_LEFT
+    assert latest_data_ws2.action == RoomEvent.PLAYER_LEFT
     assert latest_data_ws2.data.player_id == player1.player_id
 
     # Check that the players were notified about the host change
     latest_data_ws2 = ws2.data.pop()
-    assert latest_data_ws2.action == OutgoingActionType.HOST_CHANGED
+    assert latest_data_ws2.action == RoomEvent.HOST_CHANGED
     assert latest_data_ws2.data.player_id == player2.player_id
 
 # Test host leaving removes room if no new host is found

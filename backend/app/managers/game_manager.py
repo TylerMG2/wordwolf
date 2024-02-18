@@ -85,16 +85,21 @@ class GameManager:
 
         # Start the game timer
         self.game_timer = create_task(self.end_game_timer())
-
         return True
     
     # Timer function for ending the game
     async def end_game_timer(self):
         await sleep(600)
-        await self.end_game()
+        await self.end_game(winner="spy")
 
     # Ends the game for a room
-    async def end_game(self):
+    async def end_game(self, winner="spy"):
+
+        # Make sure the timer is cancelled
+        if self.game_timer is not None:
+            self.game_timer.cancel()
+            self.game_timer = None
+
         self.state = GameState.LOBBY
         self.room.game_state = GameState.LOBBY
         await self.broadcast(GameEvent.GAME_OVER, "The game has ended")

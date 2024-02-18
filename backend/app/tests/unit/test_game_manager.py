@@ -24,3 +24,30 @@ async def test_game_manager_to_schema():
     assert schema.role.word == "test"
 
     game_manager.game_timer.cancel()
+
+# Test get next players turn
+def test_game_manager_get_next_players_turn():
+    room = RoomManager(1)
+    game_manager = GameManager(room)
+    p1, p2, p3 = PlayerManager(1, "test", False), PlayerManager(2, "test", False), PlayerManager(3, "test", False)
+    p1.connect(MockWebsocket())
+    p2.connect(MockWebsocket())
+    p3.connect(MockWebsocket())
+    game_manager.players = [p1, p2, p3]
+    game_manager.turn = 0
+
+    # Check the next player
+    game_manager.next_turn()
+    assert game_manager.turn == 1
+    game_manager.next_turn()
+    assert game_manager.turn == 2
+    game_manager.next_turn()
+    assert game_manager.turn == 0
+
+    # Disconnect a player
+    p2.disconnect()
+    game_manager.next_turn()
+    assert game_manager.turn == 2
+    game_manager.next_turn()
+    assert game_manager.turn == 0
+

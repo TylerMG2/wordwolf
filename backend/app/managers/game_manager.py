@@ -1,7 +1,8 @@
 from .room_manager import RoomManager
 from .player_manager import PlayerManager
-from ..schemas import RoomEvent, PlayerRoleSchema, GameState, GameSchema, ActionTypes, EventDataTypes
+from ..schemas import RoomEvent, PlayerRoleSchema, GameState, GameSchema, GameEvent, ActionTypes, EventDataTypes
 from random import choice, shuffle
+from asyncio import sleep, create_task, Task
 
 # Game manager class for managing the game logic
 class GameManager:
@@ -13,12 +14,14 @@ class GameManager:
     spy: PlayerManager
     spy_word: str
     word: str
+    game_timer: Task
 
     # Init game manager
     def __init__(self, room: RoomManager):
         self.state = GameState.LOBBY
         self.room = room
         self.spy = None
+        self.game_timer = None
 
     # To schema
     def to_schema(self, role: PlayerRoleSchema) -> GameSchema:
@@ -79,5 +82,20 @@ class GameManager:
         # Send the game started event with different roles to each player
         await self.spy.send(RoomEvent.GAME_START, self.to_schema(spy_role))
         await self.broadcast_except(RoomEvent.GAME_START, self.to_schema(player_role), self.spy.player_id)
+
+        # Start the game timer
+        self.game_timer = create_task(self.end_game_timer())
+
         return True
-        
+    
+    # Timer function for ending the game
+    async def end_game_timer(self):
+        await sleep(600)
+        await self.end_game()
+
+    # Ends the game for a room
+    async def end_game(self):
+        self.state = GameState.LOBBY
+        self.room.game_state = GameState.LOBBY
+        await self.broadcast(GameEvent.GAME_OVER, "The game has ended")
+    

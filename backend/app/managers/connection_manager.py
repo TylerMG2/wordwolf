@@ -1,10 +1,12 @@
 from .room_manager import RoomManager
 from .player_manager import PlayerManager
-from ..schemas import ActionSchema
+from .game_manager import GameManager
+from ..schemas import RoomEvent
 from fastapi import WebSocket, WebSocketException
 import uuid
 
-class WebsocketManager():
+# Connection manager class for managing the connections to rooms
+class ConnectionManager():
 
     rooms : dict[str, RoomManager] = {}
 
@@ -42,8 +44,12 @@ class WebsocketManager():
         # Attempt to connect
         player.connect(websocket)
 
+        # Send the game state
+        await websocket.accept()
+        await player.send(RoomEvent.ROOM_STATE, room.to_schema(player_id))
+
         # Update all players in the room on the new player
-        await room.broadcast_except(ActionSchema(action="played_connected", data=player.to_other_player_schema()), player_id)
+        await room.broadcast_except(RoomEvent.PLAYER_CONNECTED, player.to_schema(), player_id)
         return room, player
 
     # On player disconnect
@@ -53,7 +59,7 @@ class WebsocketManager():
         player.disconnect()
 
         # Update all players in the room on the player leaving
-        await room.broadcast_except(ActionSchema(action="player_disconnected", data=player.to_other_player_schema()), player.player_id)
+        await room.broadcast_except(RoomEvent.PLAYER_DISCONNECTED, player.to_schema(), player.player_id)
 
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():
@@ -80,7 +86,7 @@ class WebsocketManager():
                 if new_host:
                     new_host.is_host = True
                     room.host_id = new_host.player_id
-                    await room.broadcast(ActionSchema(action="host_change", data=new_host.to_other_player_schema()))
+                    await room.broadcast(RoomEvent.HOST_CHANGED, new_host.to_schema())
                 else:
                     # Delete the room if no new host was found
                     del self.rooms[room.room_id]
@@ -88,7 +94,7 @@ class WebsocketManager():
                     return
 
         # Update all players in the room on the player leaving
-        await room.broadcast(ActionSchema(action="player_left", data=player.to_other_player_schema()))
+        await room.broadcast(RoomEvent.PLAYER_LEFT, player.to_schema())
 
         # If all players are disconnected, delete the room
         if room.all_players_disconnected():

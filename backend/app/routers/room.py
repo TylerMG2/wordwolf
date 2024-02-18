@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from .websocket import manager
-from typing import Any
+from .websocket import connection_manager
 from http import HTTPStatus
 
 router = APIRouter(
@@ -25,7 +24,7 @@ class RoomResponse(BaseModel):
 async def create_room(room_create: RoomRequest) -> RoomResponse: 
 
     # Create a room
-    room = manager.create_room()
+    room = connection_manager.create_room()
 
     # Join the room
     player = room.add_player(room_create.nickname, is_host=True)
@@ -38,9 +37,9 @@ async def create_room(room_create: RoomRequest) -> RoomResponse:
 async def join_room(room_id: str, room_join: RoomRequest) -> RoomResponse:
 
     # Check if the room exists
-    if room_id not in manager.rooms:
+    if room_id not in connection_manager.rooms:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Room not found")
-    room = manager.rooms[room_id]
+    room = connection_manager.rooms[room_id]
     
     # Join the room
     player = room.add_player(room_join.nickname) 

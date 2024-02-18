@@ -1,5 +1,5 @@
 from fastapi import WebSocket
-from ..schemas import PlayerSchema, OtherPlayerSchema
+from ..schemas import PlayerSchema, EventSchema, ActionTypes, EventDataTypes
 import uuid
 
 # Player class
@@ -9,10 +9,8 @@ class PlayerManager:
     player_id: int
     nickname: str
     credentials: str
-    word: str = ""
     is_host: bool = False
     is_connected: bool = False
-    is_spy: bool = False
 
     def __init__(self, player_id: int, nickname: str, is_host: bool):
         self.websocket = None
@@ -32,21 +30,20 @@ class PlayerManager:
         self.websocket = None
     
     # Convert to player schema
-    def to_player_schema(self):
+    def to_schema(self) -> PlayerSchema:
         return PlayerSchema(
             player_id=self.player_id,
             nickname=self.nickname,
             is_connected=self.is_connected,
             is_host=self.is_host,
-            is_spy=self.is_spy,
-            word=self.word
         )
 
-    # Convert to other player schema
-    def to_other_player_schema(self):
-        return OtherPlayerSchema(
-            player_id=self.player_id,
-            nickname=self.nickname,
-            is_connected=self.is_connected,
-            is_host=self.is_host
-        )
+    # Send an event to the player
+    async def send(self, action: ActionTypes, data: EventDataTypes):
+
+        # Build the event
+        event = EventSchema(action=action, data=data)
+        
+        # If the player is connected, send the event
+        if self.is_connected:
+            await self.websocket.send_json(event.model_dump_json())

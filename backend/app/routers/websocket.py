@@ -1,9 +1,9 @@
 from fastapi import WebSocket, WebSocketException, APIRouter, WebSocketDisconnect
-from ..managers import WebsocketManager
-from ..schemas import ActionSchema
+from ..managers import ConnectionManager, GameManager
+from ..schemas import EventSchema, RoomEvent, GameEvent
 
-# Manager
-manager = WebsocketManager()
+# Managers
+connection_manager = ConnectionManager()
 
 router = APIRouter(
     tags=["websocket"],
@@ -24,22 +24,23 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         player_id = int(player_id)
 
         # Connect to the room and send the game state
-        room, player = await manager.player_connected(room_id, player_id, credentials, websocket)
-        await websocket.accept()
+        room, player = await connection_manager.player_connected(room_id, player_id, credentials, websocket)
 
-        # Send the game state to the player
-        await websocket.send_json(ActionSchema(action="game_state", data=room.to_schema(player_id)).model_dump_json())
+        # Setup the game manager
+        game : GameManager = GameManager(room)
 
-        # Listen for actions
+        # Listen for player events
         while True:
 
-            # Get the action
+            # Get the event
             data = await websocket.receive_json()
-            action = ActionSchema.model_validate_json(data)
+            action = EventSchema.model_validate_json(data)
 
             # Handle the action
-            if action.action == "leave":
-                await manager.player_left(room, player)
+            if action.action == RoomEvent.PLAYER_LEFT:
+                await connection_manager.player_left(room, player)
+            elif action.action == RoomEvent.GAME_START:
+                await game.start_game(player)
 
     except WebSocketException as e:
         await websocket.close(code=e.code, reason=e.reason)
@@ -47,4 +48,4 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str,
         await websocket.close()
     finally:
         if player is not None:
-            await manager.player_disconnected(room, player)
+            await connection_manager.player_disconnected(room, player)

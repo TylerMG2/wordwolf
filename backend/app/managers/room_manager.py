@@ -1,5 +1,5 @@
 from .player_manager import PlayerManager
-from ..schemas import ActionSchema, RoomSchema
+from ..schemas import RoomSchema, ActionTypes, EventDataTypes, GameState
 
 # Room class
 class RoomManager:
@@ -7,14 +7,15 @@ class RoomManager:
     room_id: str
     host_id: int
     players: dict[int, PlayerManager]
-    game_state: str
+    game_state: GameState
 
     # Init room
     def __init__(self, room_id: str):
         self.room_id = room_id
+        self.host_id = -1
         self.players = {}
-        self.game_state = "lobby"
-    
+        self.game_state = GameState.IN_PROGRESS
+
     # Add a player to the room
     def add_player(self, nickname: str, is_host: bool = False) -> PlayerManager:
         
@@ -44,28 +45,27 @@ class RoomManager:
                 return False
         return True
 
+    # Get all connected players
+    def get_connected_players(self) -> list[PlayerManager]:
+        return [player for player in self.players.values() if player.is_connected]
+
     # Convert to room schema
     def to_schema(self, player_id: int) -> RoomSchema:
         return RoomSchema(
             room_id=self.room_id,
             host_id=self.host_id,
-            players={player_id: player.to_other_player_schema() for player_id, player in self.players.items()},
+            players={player_id: player.to_schema() for player_id, player in self.players.items()},
             game_state=self.game_state,
-            you=self.players[player_id].to_player_schema()
+            you=player_id
         )
 
-    # Send message to all players in the room
-    async def broadcast(self, message: ActionSchema):
+    # Send event to all players in the room
+    async def broadcast(self, action: ActionTypes, data: EventDataTypes):
         for player in self.players.values():
-            if player.is_connected:
-                await player.websocket.send_json(message.model_dump_json())
+            await player.send(action, data)
     
-    # Send message to all players in the room except the sender
-    async def broadcast_except(self, message: ActionSchema, sender_id: int):
+    # Send event to all players in the room except the sender
+    async def broadcast_except(self, action: ActionTypes, data: EventDataTypes, sender_id: int):
         for player_id, player in self.players.items():
-            if player_id != sender_id and player.is_connected:
-                await player.websocket.send_json(message.model_dump_json())
-    
-    # Send message to a specific player
-    async def send_to(self, message: ActionSchema, receiver_id: int):
-        await self.players[receiver_id].websocket.send_json(message.model_dump_json())
+            if player_id != sender_id:
+                await player.send(action, data)

@@ -3,6 +3,7 @@ from app.managers import ConnectionManager, RoomManager, PlayerManager
 from .mock_websocket import MockWebsocket
 from app.schemas import RoomEvent, EventSchema
 from typing import Callable, Tuple
+from collections.abc import Awaitable
 
 ### Tests to do with connecting and disconnecting players from the WebsocketManager
 
@@ -19,7 +20,7 @@ def room(manager):
 # Fixture for connecting a player
 @pytest.fixture
 def connect_player(manager: ConnectionManager, room: RoomManager) -> Callable[[str, bool], Tuple[PlayerManager, MockWebsocket]]:
-    async def _connect(nickname="test", host=False) -> Tuple[PlayerManager, MockWebsocket]:
+    async def _connect(nickname="test", host=False) -> Awaitable[Tuple[PlayerManager, MockWebsocket]]:
         player = room.add_player(nickname, host)
         ws = MockWebsocket()
         await manager.player_connected(room.room_id, player.player_id, player.credentials, ws)

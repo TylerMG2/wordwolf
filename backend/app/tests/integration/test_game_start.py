@@ -1,6 +1,8 @@
 from app.managers import ConnectionManager, GameManager, RoomManager, PlayerManager
 from ..unit.mock_websocket import MockWebsocket
 from app.schemas import RoomEvent, EventSchema, GameState
+from collections.abc import Callable, Awaitable
+
 import pytest
 
 # Fixture for ConnectionManager
@@ -31,7 +33,7 @@ def connect_player(manager: ConnectionManager, room: RoomManager):
 
 # Fixture that returns a started game
 @pytest.fixture
-async def started_game(room: RoomManager, connect_player, game_manager: GameManager) -> tuple[PlayerManager, MockWebsocket, MockWebsocket, MockWebsocket]:
+async def started_game(room: RoomManager, connect_player, game_manager: GameManager) -> Awaitable[tuple[PlayerManager, MockWebsocket, MockWebsocket, MockWebsocket]]:
     # Create players
     host, ws1 = await connect_player("test1", True)
     _, ws2 = await connect_player("test2")
